@@ -54,7 +54,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('type', 20); // call | meeting | email | note
             $table->text('body');
-            $table->timestamp('happened_at');
+            $table->timestamp('happened_at')->useCurrent();
             $table->timestamps();
         });
 

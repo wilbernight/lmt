@@ -77,6 +77,11 @@ class Task extends Model
         return $this->checklist();
     }
 
+    public function timeEntries(): HasMany
+    {
+        return $this->hasMany(TimeEntry::class)->latest('started_at');
+    }
+
     public function comments(): HasMany
     {
         return $this->hasMany(TaskComment::class)->latest();

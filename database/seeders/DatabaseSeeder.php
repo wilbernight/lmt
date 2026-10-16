@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Actions\CreateWorkspace;
 use App\Enums\ProjectRole;
 use App\Enums\WorkspaceRole;
+use App\Models\Attendance;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Letter;
@@ -13,6 +14,7 @@ use App\Models\Note;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskComment;
+use App\Models\TimeEntry;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 
@@ -144,6 +146,47 @@ class DatabaseSeeder extends Seeder
             $t->save();
             $t->assignees()->sync([$assignee->id]);
         }
+
+        // Attendance and logged hours for the past working days -----------------
+        $tasks = Task::where('project_id', $clinic->id)->get();
+
+        foreach (range(6, 1) as $daysAgo) {
+            $day = now('Asia/Tehran')->subDays($daysAgo);
+
+            if ($day->isFriday()) {
+                continue;
+            }
+
+            foreach ([$ehsan, $sara, $ali, $maryam] as $i => $person) {
+                $in = $day->copy()->setTime(8, 15 + $i * 10 + rand(0, 20))->utc();
+                $out = $day->copy()->setTime(16, 30 + rand(0, 60))->utc();
+
+                $presence = new Attendance([
+                    'started_at' => $in, 'last_activity_at' => $out, 'ended_at' => $out,
+                    'end_reason' => rand(0, 5) ? 'logout' : 'timeout', 'ip_address' => '192.168.1.'.(20 + $i),
+                ]);
+                $presence->user_id = $person->id;
+                $presence->save();
+
+                foreach (range(1, rand(2, 3)) as $n) {
+                    $task = $tasks->random();
+                    $start = $in->copy()->addMinutes(20 + ($n - 1) * 150);
+                    $minutes = rand(40, 130);
+
+                    $entry = new TimeEntry;
+                    $entry->workspace_id = $dev->id;
+                    $entry->task_id = $task->id;
+                    $entry->project_id = $clinic->id;
+                    $entry->user_id = $person->id;
+                    $entry->started_at = $start;
+                    $entry->ended_at = $start->copy()->addMinutes($minutes);
+                    $entry->seconds = $minutes * 60;
+                    $entry->save();
+                }
+            }
+        }
+
+        $main->forceFill(['estimate_minutes' => 20 * 60])->save();
 
         // Chat ------------------------------------------------------------------
         $direct = new Conversation(['type' => 'direct']);

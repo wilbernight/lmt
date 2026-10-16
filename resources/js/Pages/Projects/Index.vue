@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
-import { Archive, CalendarClock, FolderKanban, Globe, Lock, Plus, Search } from '@lucide/vue';
+import { Archive, CalendarClock, Clock, FolderKanban, Globe, Lock, Plus, Search } from '@lucide/vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import Button from '@/Components/ui/Button.vue';
 import Modal from '@/Components/ui/Modal.vue';
@@ -13,7 +13,7 @@ import DatePicker from '@/Components/ui/DatePicker.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import { faNum, jDate } from '@/lib/format';
+import { faNum, hours, jDate } from '@/lib/format';
 
 const props = defineProps({ projects: Array, archived: Boolean, filters: Object, colors: Array, canCreate: Boolean });
 
@@ -79,6 +79,7 @@ const percent = (p) => (p.tasks_count ? Math.round((p.done_count / p.tasks_count
             <div class="mt-4 flex items-center gap-2 text-xs text-ink-3">
                 <AvatarStack :users="p.members" :total="p.members_count" :max="4" />
                 <span v-if="p.overdue_count" class="chip bg-danger-soft text-danger">{{ faNum(p.overdue_count) }} تأخیر</span>
+                <span v-if="p.tracked_seconds" class="flex items-center gap-1"><Clock class="size-3.5" /> {{ hours(p.tracked_seconds) }} ساعت</span>
                 <span v-if="p.due_on" class="ms-auto flex items-center gap-1"><CalendarClock class="size-3.5" /> {{ jDate(p.due_on) }}</span>
             </div>
         </Link>

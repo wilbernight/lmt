@@ -12,8 +12,10 @@ use App\Models\Note;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskComment;
+use App\Models\TimeEntry;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\Presence;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
@@ -59,6 +61,7 @@ class AppServiceProvider extends ServiceProvider
             'note' => Note::class,
             'customer' => Customer::class,
             'attachment' => Attachment::class,
+            'time_entry' => TimeEntry::class,
         ]);
 
         if ($production) {
@@ -98,8 +101,17 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureAuthAuditing(): void
     {
-        Event::listen(Login::class, fn (Login $e) => AuditLog::record('auth.login', userId: $e->user->getAuthIdentifier()));
-        Event::listen(Logout::class, fn (Logout $e) => $e->user && AuditLog::record('auth.logout', userId: $e->user->getAuthIdentifier()));
+        // Logging in clocks staff in; logging out clocks them out and stops their task timer.
+        Event::listen(Login::class, function (Login $e) {
+            AuditLog::record('auth.login', userId: $e->user->getAuthIdentifier());
+            Presence::clockIn($e->user);
+        });
+        Event::listen(Logout::class, function (Logout $e) {
+            if ($e->user) {
+                AuditLog::record('auth.logout', userId: $e->user->getAuthIdentifier());
+                Presence::clockOut($e->user);
+            }
+        });
         Event::listen(Failed::class, fn (Failed $e) => AuditLog::record('auth.failed', properties: [
             'email' => mb_substr((string) ($e->credentials['email'] ?? ''), 0, 120),
         ], userId: $e->user?->getAuthIdentifier()));

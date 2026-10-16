@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import {
     AtSign, Bookmark, CalendarClock, CircleCheck, Clock, Copy, Eye, EyeOff, Flag, FolderKanban, History, Layers,
-    ListChecks, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Send, Tag, Trash2, Users, X,
+    ListChecks, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Send, Tag, Timer, Trash2, Users, X,
 } from '@lucide/vue';
 import Modal from '@/Components/ui/Modal.vue';
 import Button from '@/Components/ui/Button.vue';
@@ -18,6 +18,8 @@ import FileUpload from '@/Components/ui/FileUpload.vue';
 import AttachmentList from '@/Components/ui/AttachmentList.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import Spinner from '@/Components/ui/Spinner.vue';
+import TaskTimer from './TaskTimer.vue';
+import TaskTimeLog from './TaskTimeLog.vue';
 import http from '@/lib/http';
 import { PRIORITIES, faNum, jDateTime, relative } from '@/lib/format';
 import { closeTask, taskChanged, taskModal } from '@/composables/useTaskModal';
@@ -77,7 +79,7 @@ watch(
 
 function changed() {
     taskChanged();
-    router.reload({ only: ['tasks', 'myTasks', 'following', 'overdue', 'stats', 'counters'] });
+    router.reload({ only: ['tasks', 'myTasks', 'following', 'overdue', 'stats', 'counters', 'timer', 'project'] });
 }
 
 async function patch(fields) {
@@ -207,6 +209,9 @@ const activityText = (a) =>
         commented: 'گزارش ثبت کرد',
         checked: `«${a.data?.item}» را تیک زد`,
         unchecked: `تیک «${a.data?.item}» را برداشت`,
+        timer_started: 'شروع به کار کرد',
+        timer_stopped: `کار را متوقف کرد (${a.data?.minutes ?? 0} دقیقه)`,
+        time_logged: `${a.data?.minutes ?? 0} دقیقه زمان ثبت کرد`,
     })[a.type] ?? a.type;
 </script>
 
@@ -330,7 +335,7 @@ const activityText = (a) =>
                 <!-- Tabs: reports / activity -->
                 <div class="mt-8 border-b border-line">
                     <div class="flex gap-1">
-                        <button v-for="t in [{ k: 'reports', l: 'گزارش‌ها', i: MessageSquare, c: task.comments.length }, { k: 'activity', l: 'تاریخچه', i: History }]" :key="t.k" class="relative flex items-center gap-2 px-3 pb-3 text-sm font-semibold" :class="tab === t.k ? 'text-accent-ink' : 'text-ink-3 hover:text-ink'" @click="tab = t.k">
+                        <button v-for="t in [{ k: 'reports', l: 'گزارش‌ها', i: MessageSquare, c: task.comments.length }, { k: 'time', l: 'ساعت کار', i: Timer, c: task.time.entries.length }, { k: 'activity', l: 'تاریخچه', i: History }]" :key="t.k" class="relative flex items-center gap-2 px-3 pb-3 text-sm font-semibold" :class="tab === t.k ? 'text-accent-ink' : 'text-ink-3 hover:text-ink'" @click="tab = t.k">
                             <component :is="t.i" class="size-4" /> {{ t.l }} <span v-if="t.c" class="num text-xs">({{ faNum(t.c) }})</span>
                             <span v-if="tab === t.k" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full gradient-accent" />
                         </button>
@@ -375,6 +380,8 @@ const activityText = (a) =>
                     </article>
                 </div>
 
+                <TaskTimeLog v-else-if="tab === 'time'" :task="task" :can-work="can.work" @changed="load(); changed()" />
+
                 <ol v-else class="relative mt-5 space-y-4 border-s border-line ps-5">
                     <li v-for="a in task.activities" :key="a.id" class="relative text-sm">
                         <span class="absolute -start-[1.6rem] top-1.5 size-2.5 rounded-full border-2 border-surface bg-accent" />
@@ -387,6 +394,23 @@ const activityText = (a) =>
 
             <!-- Side panel -->
             <aside class="space-y-5 border-t border-line bg-surface-2/60 p-5 lg:rounded-e-2xl lg:border-s lg:border-t-0">
+                <TaskTimer :key="task.id + (task.time.running ?? '')" :task="task" :can-work="can.work" @changed="load(); changed()" />
+
+                <div>
+                    <p class="label flex items-center gap-1.5"><Timer class="size-3.5" /> تخمین زمان (ساعت)</p>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        dir="ltr"
+                        class="field h-9 py-1 text-end text-xs"
+                        :value="task.estimate_minutes ? task.estimate_minutes / 60 : ''"
+                        :disabled="!can.update"
+                        placeholder="—"
+                        @change="patch({ estimate_minutes: $event.target.value ? Math.round(Number($event.target.value) * 60) : null })"
+                    />
+                </div>
+
                 <div>
                     <p class="label flex items-center gap-1.5"><Users class="size-3.5" /> مسئولان</p>
                     <MemberPicker v-if="can.update" :model-value="task.assignees.map((a) => a.id)" compact @update:model-value="patch({ assignees: $event })" />

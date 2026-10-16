@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
-    Bell, Building2, ChartColumn, ChevronDown, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
+    Bell, Building2, ChartColumn, Clock, ChevronDown, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
     Gauge, MessagesSquare, Monitor, Moon, Plus, Search, Settings, ShieldCheck, SlidersHorizontal, StickyNote, Sun, UserPlus, Users, X,
 } from '@lucide/vue';
 import Avatar from '@/Components/ui/Avatar.vue';
@@ -14,6 +14,7 @@ import NavProgress from '@/Components/ui/NavProgress.vue';
 import ConfirmHost from '@/Components/ui/ConfirmHost.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import CommandPalette from '@/Components/CommandPalette.vue';
+import TimerPill from '@/Components/TimerPill.vue';
 import NotificationPanel from '@/Components/NotificationPanel.vue';
 import TaskModal from '@/Components/tasks/TaskModal.vue';
 import TaskCreateModal from '@/Components/tasks/TaskCreateModal.vue';
@@ -54,6 +55,7 @@ const nav = computed(() => {
         { label: 'وظایف', href: route('tasks.index', id), icon: ListChecks, tone: 'emerald', match: `/w/${id}/tasks`, count: counters.value.tasks, also: `/w/${id}/calendar` },
         { label: 'نامه‌ها', href: route('letters.index', id), icon: Mailbox, tone: 'orange', match: `/w/${id}/letters`, count: counters.value.letters },
         { label: 'یادداشت‌های من', href: route('notes.index', id), icon: StickyNote, tone: 'amber', match: `/w/${id}/notes` },
+        { label: 'حضور و ساعت کار', href: route('attendance.index', id), icon: Clock, tone: 'sky', match: `/w/${id}/attendance` },
     ];
 
     const more = [];
@@ -245,6 +247,8 @@ const otherMembers = computed(() => (ws.value?.members ?? []).filter((m) => m.id
                         <kbd class="hidden rounded-md border border-line bg-surface px-1.5 py-0.5 font-sans text-[0.65rem] font-semibold sm:inline" dir="ltr">Ctrl K</kbd>
                     </button>
                     <div v-else class="flex-1" />
+
+                    <TimerPill />
 
                     <button v-if="ws && ws.role !== 'guest'" class="hidden h-10 items-center gap-2 rounded-xl gradient-accent px-4 text-sm font-semibold text-on-accent shadow-[0_6px_16px_-6px_var(--accent)] hover:brightness-110 sm:flex" @click="openCreateTask()">
                         <Plus class="size-4" /> وظیفه جدید

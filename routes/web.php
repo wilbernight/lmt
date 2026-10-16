@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminWorkspaceController;
 use App\Http\Controllers\AttachmentController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChecklistController;
 use App\Http\Controllers\ColumnController;
@@ -22,6 +23,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaxonomyController;
+use App\Http\Controllers\TimeController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -60,6 +62,8 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->whereUuid('notification')->name('notifications.read');
+
+    Route::post('/timer/stop', [TimeController::class, 'stop'])->name('timer.stop');
 
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
@@ -105,6 +109,8 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::delete('/categories/{category}', [TaxonomyController::class, 'destroyCategory'])->name('categories.destroy');
 
         Route::get('/monitoring', [MonitoringController::class, 'index'])->name('monitoring');
+        Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+        Route::get('/attendance/export', [AttendanceController::class, 'export'])->middleware('throttle:10,1')->name('attendance.export');
 
         // Projects & board
         Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
@@ -114,6 +120,7 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::put('/projects/{project}/members', [ProjectController::class, 'members'])->name('projects.members');
         Route::post('/projects/{project}/archive', [ProjectController::class, 'archive'])->name('projects.archive');
         Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
+        Route::get('/projects/{project}/time', [TimeController::class, 'project'])->name('projects.time');
         Route::post('/projects/{project}/columns', [ColumnController::class, 'store'])->name('columns.store');
         Route::put('/projects/{project}/columns/reorder', [ColumnController::class, 'reorder'])->name('columns.reorder');
         Route::put('/projects/{project}/columns/{column}', [ColumnController::class, 'update'])->name('columns.update');
@@ -135,6 +142,9 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::put('/tasks/{task}/checklist/reorder', [ChecklistController::class, 'reorder'])->name('checklist.reorder');
         Route::patch('/tasks/{task}/checklist/{checklistItem}', [ChecklistController::class, 'update'])->name('checklist.update');
         Route::delete('/tasks/{task}/checklist/{checklistItem}', [ChecklistController::class, 'destroy'])->name('checklist.destroy');
+        Route::post('/tasks/{task}/timer', [TimeController::class, 'start'])->middleware('throttle:writes')->name('timer.start');
+        Route::post('/tasks/{task}/time', [TimeController::class, 'store'])->middleware('throttle:writes')->name('time.store');
+        Route::delete('/tasks/{task}/time/{timeEntry}', [TimeController::class, 'destroy'])->name('time.destroy');
         Route::post('/tasks/{task}/comments', [TaskCommentController::class, 'store'])->middleware('throttle:writes')->name('comments.store');
         Route::patch('/tasks/{task}/comments/{comment}', [TaskCommentController::class, 'update'])->name('comments.update');
         Route::delete('/tasks/{task}/comments/{comment}', [TaskCommentController::class, 'destroy'])->name('comments.destroy');

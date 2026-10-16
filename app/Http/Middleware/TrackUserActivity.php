@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Presence;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,7 @@ class TrackUserActivity
 
         if ($user && (! $user->last_seen_at || $user->last_seen_at->lt(now()->subMinute()))) {
             $user->forceFill(['last_seen_at' => now()])->saveQuietly();
+            Presence::touch($user, $request);
         }
 
         return $next($request);

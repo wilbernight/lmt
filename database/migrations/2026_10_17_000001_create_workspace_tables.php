@@ -36,7 +36,7 @@ return new class extends Migration
             $table->string('role', 20)->default('member');
             $table->char('token_hash', 64)->unique();
             $table->foreignId('invited_by')->constrained('users')->cascadeOnDelete();
-            $table->timestamp('expires_at');
+            $table->timestamp('expires_at')->useCurrent();
             $table->timestamp('accepted_at')->nullable();
             $table->timestamps();
 

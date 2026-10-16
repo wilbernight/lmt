@@ -8,6 +8,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\AuditLog;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TimeEntry;
 use App\Models\Workspace;
 use App\Support\Realtime;
 use Illuminate\Http\RedirectResponse;
@@ -33,6 +34,7 @@ class ProjectController extends Controller
             ->when($archived, fn ($q) => $q->whereNotNull('archived_at'), fn ($q) => $q->whereNull('archived_at'))
             ->when($request->filled('q'), fn ($q) => $q->where('name', 'like', $this->like($request->string('q'))))
             ->with('members:id,name,avatar_path,last_seen_at')
+            ->addSelect(['tracked_seconds' => TimeEntry::selectRaw('COALESCE(SUM('.TimeEntry::secondsSql().'), 0)')->whereColumn('project_id', 'projects.id')])
             ->withCount([
                 'tasks',
                 'tasks as done_count' => fn ($q) => $q->whereNotNull('completed_at'),
@@ -53,6 +55,7 @@ class ProjectController extends Controller
                 'overdue_count' => $p->overdue_count,
                 'members' => $p->members->take(6)->map->toCard(),
                 'members_count' => $p->members->count(),
+                'tracked_seconds' => (int) $p->tracked_seconds,
             ]);
 
         return Inertia::render('Projects/Index', [
@@ -129,6 +132,7 @@ class ProjectController extends Controller
                 'archived' => $project->archived_at !== null,
                 'members' => $project->members->map(fn ($m) => [...$m->toCard(), 'role' => $m->pivot->role]),
                 'columns' => $project->columns->map->only(['id', 'name', 'color', 'is_done', 'wip_limit', 'position']),
+                'tracked_seconds' => (int) TimeEntry::where('project_id', $project->id)->sum(DB::raw(TimeEntry::secondsSql())),
             ],
             'tasks' => TaskResource::collection($tasks),
             'labels' => $workspace->labels()->where('scope', 'task')->get(['id', 'name', 'color']),

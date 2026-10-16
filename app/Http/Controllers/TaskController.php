@@ -10,6 +10,7 @@ use App\Models\Bookmark;
 use App\Models\BoardColumn;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\TimeEntry;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Notifications\ActivityNotification;
@@ -214,6 +215,13 @@ class TaskController extends Controller
                 'id' => $a->id, 'type' => $a->type, 'data' => $a->data,
                 'user' => $a->user?->name, 'created_at' => $a->created_at->toIso8601String(),
             ]),
+            'time' => [
+                'total' => (int) $task->timeEntries()->sum(DB::raw(TimeEntry::secondsSql())),
+                'mine' => (int) $task->timeEntries()->where('user_id', $user->id)->sum(DB::raw(TimeEntry::secondsSql())),
+                'running' => TimeEntry::where('task_id', $task->id)->where('user_id', $user->id)->running()->first()?->started_at?->toIso8601String(),
+                'entries' => $task->timeEntries()->with('user:id,name,avatar_path,last_seen_at')->limit(50)->get()
+                    ->map(fn (TimeEntry $e) => [...$e->toPayload(), 'can_delete' => $e->user_id === $user->id || $user->can('delete', $task)]),
+            ],
             'bookmarked' => Bookmark::where('user_id', $user->id)->where('bookmarkable_type', 'task')->where('bookmarkable_id', $task->id)->exists(),
             'watching' => $task->watchers->contains('id', $user->id),
             'can' => [

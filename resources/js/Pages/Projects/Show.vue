@@ -4,7 +4,7 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import draggable from 'vuedraggable';
 import { useDebounceFn } from '@vueuse/core';
 import {
-    Archive, ArrowRight, Columns3, Filter, Globe, LayoutList, Lock, MoreHorizontal, Pencil, Plus, Search, Settings2, Trash2, Users, X,
+    Archive, ArrowRight, Clock, Columns3, Filter, Globe, LayoutList, Lock, MoreHorizontal, Pencil, Plus, Search, Settings2, Trash2, Users, X,
 } from '@lucide/vue';
 import Button from '@/Components/ui/Button.vue';
 import Modal from '@/Components/ui/Modal.vue';
@@ -17,8 +17,9 @@ import Avatar from '@/Components/ui/Avatar.vue';
 import DatePicker from '@/Components/ui/DatePicker.vue';
 import TaskCard from '@/Components/tasks/TaskCard.vue';
 import TaskRow from '@/Components/tasks/TaskRow.vue';
+import ProjectTimeReport from '@/Components/ProjectTimeReport.vue';
 import http from '@/lib/http';
-import { faNum } from '@/lib/format';
+import { faNum, hours } from '@/lib/format';
 import { openCreateTask, taskModal } from '@/composables/useTaskModal';
 import { confirmDialog } from '@/composables/useConfirm';
 
@@ -139,6 +140,7 @@ const roleLabel = { manager: 'مدیر پروژه', member: 'عضو', viewer: '�
             <p class="mt-0.5 flex items-center gap-3 text-sm text-ink-3">
                 <span class="flex items-center gap-1"><component :is="project.visibility === 'workspace' ? Globe : Lock" class="size-3.5" /> {{ project.visibility === 'workspace' ? 'عمومی' : 'خصوصی' }}</span>
                 <span class="num">{{ faNum(done) }}/{{ faNum(total) }} انجام شده · {{ faNum(percent) }}٪</span>
+                <button class="flex items-center gap-1 hover:text-accent-ink" @click="view = 'time'"><Clock class="size-3.5" /> {{ hours(project.tracked_seconds) }} ساعت کار</button>
             </p>
         </div>
         <button class="flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 hover:bg-surface-2" @click="can.manage && openMembers()">
@@ -161,7 +163,7 @@ const roleLabel = { manager: 'مدیر پروژه', member: 'عضو', viewer: '�
     <!-- Toolbar -->
     <div class="mt-6 flex flex-wrap items-center gap-2">
         <div class="flex rounded-xl border border-line bg-surface p-1">
-            <button v-for="v in [{ k: 'board', l: 'برد', i: Columns3 }, { k: 'list', l: 'لیست', i: LayoutList }]" :key="v.k" class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors" :class="view === v.k ? 'bg-accent-soft text-accent-ink' : 'text-ink-3 hover:text-ink'" @click="view = v.k">
+            <button v-for="v in [{ k: 'board', l: 'برد', i: Columns3 }, { k: 'list', l: 'لیست', i: LayoutList }, { k: 'time', l: 'ساعت کار', i: Clock }]" :key="v.k" class="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold transition-colors" :class="view === v.k ? 'bg-accent-soft text-accent-ink' : 'text-ink-3 hover:text-ink'" @click="view = v.k">
                 <component :is="v.i" class="size-4" /> {{ v.l }}
             </button>
         </div>
@@ -225,6 +227,8 @@ const roleLabel = { manager: 'مدیر پروژه', member: 'عضو', viewer: '�
             </template>
         </draggable>
     </div>
+
+    <ProjectTimeReport v-else-if="view === 'time'" :project-id="project.id" />
 
     <!-- List -->
     <div v-else class="mt-5 space-y-5">

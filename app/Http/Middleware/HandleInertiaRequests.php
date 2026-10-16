@@ -3,7 +3,10 @@
 namespace App\Http\Middleware;
 
 use App\Enums\WorkspaceRole;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\TimeController;
 use App\Models\Setting;
+use App\Models\TimeEntry;
 use App\Models\Task;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
@@ -45,6 +48,11 @@ class HandleInertiaRequests extends Middleware
                 ->get(['workspaces.id', 'workspaces.name', 'workspaces.color'])
                 ->map(fn (Workspace $w) => ['id' => $w->id, 'name' => $w->name, 'color' => $w->color, 'role' => $w->pivot->role])
                 : [],
+            // The viewer's running task timer and today's attendance, for the header.
+            'timer' => fn () => $user ? TimeController::timerPayload(
+                TimeEntry::where('user_id', $user->id)->running()->with('task:id,title')->latest('started_at')->first()
+            ) : null,
+            'presence' => fn () => $user ? AttendanceController::today($user) : null,
             'counters' => fn () => $workspace && $user ? $this->counters($workspace, $user) : null,
             'flash' => fn () => [
                 'success' => $request->session()->get('success'),

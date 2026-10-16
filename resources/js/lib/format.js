@@ -109,3 +109,26 @@ export const PRIORITIES = [
     { value: 2, label: 'زیاد', tone: 'amber' },
     { value: 3, label: 'فوری', tone: 'rose' },
 ];
+
+/** "۳ ساعت و ۲۰ دقیقه" (long) or "۳:۲۰" (short). */
+export function formatDuration(seconds, { short = false, withSeconds = false } = {}) {
+    const total = Math.max(0, Math.floor(seconds || 0));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+
+    if (short) {
+        const parts = [h, String(m).padStart(2, '0')];
+        if (withSeconds) parts.push(String(s).padStart(2, '0'));
+        return faNum(parts.join(':'));
+    }
+
+    if (!h && !m) return total ? 'کمتر از یک دقیقه' : '۰';
+    if (!h) return `${faNum(m)} دقیقه`;
+    if (!m) return `${faNum(h)} ساعت`;
+    return `${faNum(h)} ساعت و ${faNum(m)} دقیقه`;
+}
+
+export function hours(seconds) {
+    return faNum((Math.round(((seconds || 0) / 3600) * 10) / 10).toString());
+}

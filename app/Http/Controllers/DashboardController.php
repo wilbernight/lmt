@@ -19,6 +19,9 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
+        // This is only a hop: keep any flash message for the page we land on.
+        $request->session()->reflash();
+
         $workspace = $user->workspaces()->whereKey($user->current_workspace_id)->first()
             ?? $user->workspaces()->oldest('workspace_user.created_at')->first();
 

@@ -33,6 +33,11 @@ createInertiaApp({
         if (props.initialPage.props.auth) {
             startEcho();
         }
+
+        // Flash messages that arrive with a full page load (e.g. after a redirect).
+        const flash = props.initialPage.props.flash ?? {};
+        if (flash.success) toast.success(flash.success);
+        if (flash.error) toast.error(flash.error);
     },
     progress: false,
 });

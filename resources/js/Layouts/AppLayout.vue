@@ -239,14 +239,15 @@ const otherMembers = computed(() => (ws.value?.members ?? []).filter((m) => m.id
 
                     <button
                         v-if="ws"
-                        class="flex h-10 max-w-md flex-1 items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 text-sm text-ink-3 transition-colors hover:border-line-strong"
+                        class="flex h-10 w-full max-w-md items-center gap-2.5 rounded-xl border border-line bg-surface-2 px-3 text-sm text-ink-3 transition-colors hover:border-line-strong"
                         @click="palette = true"
                     >
                         <Search class="size-4" />
                         <span class="flex-1 text-start">جستجو در کارها، پروژه‌ها، نامه‌ها...</span>
                         <kbd class="hidden rounded-md border border-line bg-surface px-1.5 py-0.5 font-sans text-[0.65rem] font-semibold sm:inline" dir="ltr">Ctrl K</kbd>
                     </button>
-                    <div v-else class="flex-1" />
+                    <!-- Pushes everything after the search box to the far (left) edge. -->
+                    <div class="min-w-0 flex-1" />
 
                     <TimerPill />
 

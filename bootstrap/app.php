@@ -6,12 +6,15 @@ use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\ThrottleAuthEndpoints;
 use App\Http\Middleware\TrackUserActivity;
+use App\Models\Workspace;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -42,6 +45,15 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'code', 'recovery_code']);
+
+        // Old or foreign workspace links (/w/{id}/...) lead back to the dashboard instead of a dead end.
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($e->getPrevious() instanceof ModelNotFoundException
+                && $e->getPrevious()->getModel() === Workspace::class
+                && $request->user()) {
+                return EnsureWorkspaceMember::unavailable($request);
+            }
+        });
 
         // Render friendly Inertia error pages instead of framework pages in production.
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {

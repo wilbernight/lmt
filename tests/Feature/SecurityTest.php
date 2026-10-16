@@ -43,14 +43,20 @@ class SecurityTest extends TestCase
         $this->actingAs($user)->get("/w/{$workspace->id}")->assertRedirect('/email/verify');
     }
 
-    public function test_non_members_get_404_for_a_workspace(): void
+    public function test_non_members_cannot_tell_a_foreign_workspace_from_a_missing_one(): void
     {
         $workspace = $this->workspace();
         $outsider = User::factory()->create();
+        $missing = '01aaaaaaaaaaaaaaaaaaaaaaaa';
 
-        $this->actingAs($outsider)->get("/w/{$workspace->id}")->assertNotFound();
-        $this->actingAs($outsider)->get("/w/{$workspace->id}/tasks")->assertNotFound();
+        // Page visits go back to the dashboard, identically for both cases.
+        $this->actingAs($outsider)->get("/w/{$workspace->id}")->assertRedirect('/dashboard')->assertSessionHas('error');
+        $this->actingAs($outsider)->get("/w/{$missing}/tasks")->assertRedirect('/dashboard')->assertSessionHas('error');
+
+        // API calls and writes get a plain 404.
         $this->actingAs($outsider)->getJson("/w/{$workspace->id}/search?q=test")->assertNotFound();
+        $this->actingAs($outsider)->getJson("/w/{$missing}/search?q=test")->assertNotFound();
+        $this->actingAs($outsider)->post("/w/{$workspace->id}/projects", ['name' => 'x'])->assertNotFound();
     }
 
     public function test_password_reset_does_not_reveal_whether_an_account_exists(): void

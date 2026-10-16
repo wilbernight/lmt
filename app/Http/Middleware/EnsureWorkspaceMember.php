@@ -23,7 +23,10 @@ class EnsureWorkspaceMember
         abort_unless($workspace instanceof Workspace && $user, 404);
 
         $role = $user->roleIn($workspace);
-        abort_if($role === null, 404);
+
+        if ($role === null) {
+            return self::unavailable($request);
+        }
 
         // A workspace locked by a site administrator is closed to its members.
         if ($workspace->suspended_at && ! $user->is_admin) {
@@ -41,5 +44,16 @@ class EnsureWorkspaceMember
         app()->instance(Workspace::class, $workspace);
 
         return $next($request);
+    }
+
+    /**
+     * A workspace that does not exist or is not yours: page visits go back to the
+     * dashboard (same answer either way, so nothing is disclosed); API calls get 404.
+     */
+    public static function unavailable(Request $request): Response
+    {
+        abort_if(! $request->isMethod('GET') || $request->expectsJson(), 404);
+
+        return redirect()->route('dashboard')->with('error', 'این میزکار در دسترس نیست یا به آن دسترسی ندارید.');
     }
 }

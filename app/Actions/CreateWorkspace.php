@@ -22,6 +22,7 @@ class CreateWorkspace
         return DB::transaction(function () use ($owner, $name, $color) {
             $workspace = new Workspace(['name' => $name, 'color' => $color]);
             $workspace->owner_id = $owner->id;
+            $workspace->storage_limit = $owner->workspaceStorage();
             $workspace->save();
 
             $workspace->addMember($owner, WorkspaceRole::Owner);

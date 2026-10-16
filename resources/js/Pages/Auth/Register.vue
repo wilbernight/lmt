@@ -6,6 +6,8 @@ import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import PasswordInput from '@/Components/ui/PasswordInput.vue';
 
+defineProps({ open: { type: Boolean, default: true } });
+
 const form = useForm({ name: '', email: '', password: '', password_confirmation: '', terms: false });
 
 const strength = computed(() => {
@@ -30,7 +32,9 @@ const submit = () => form.post('/register', { onFinish: () => form.reset('passwo
     <h1 class="text-3xl font-black tracking-tight">ساخت حساب کاربری</h1>
     <p class="mt-2 text-sm text-ink-3">در کمتر از یک دقیقه میزکار تیم خود را بسازید.</p>
 
-    <form class="mt-8 space-y-5" @submit.prevent="submit">
+    <div v-if="!open" class="mt-8 rounded-xl bg-warning-soft px-4 py-3 text-sm leading-7 text-warning">ثبت‌نام در حال حاضر بسته است. برای ساخت حساب با مدیر سایت تماس بگیرید.</div>
+
+    <form v-else class="mt-8 space-y-5" @submit.prevent="submit">
         <Field label="نام و نام خانوادگی" :error="form.errors.name" for="name">
             <div class="relative">
                 <User class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />

@@ -34,6 +34,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'avatar_path',
         'current_workspace_id',
         'suspended_at',
+        'suspended_reason',
+        'storage_quota',
+        'max_workspaces',
+        'can_create_workspaces',
     ];
 
     protected $appends = ['avatar_url', 'initials'];
@@ -49,7 +53,39 @@ class User extends Authenticatable implements MustVerifyEmail
             'last_seen_at' => 'datetime',
             'suspended_at' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
+            'can_create_workspaces' => 'boolean',
+            'max_workspaces' => 'integer',
+            'storage_quota' => 'integer',
         ];
+    }
+
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
+
+    /** How many workspaces this user may own (per-user override, else the site default). */
+    public function workspaceAllowance(): int
+    {
+        return $this->max_workspaces ?? (int) Setting::get('default_max_workspaces');
+    }
+
+    /** Storage given to each new workspace this user creates. */
+    public function workspaceStorage(): int
+    {
+        return $this->storage_quota ?? (int) Setting::get('default_storage_limit');
+    }
+
+    public function ownedWorkspaces(): HasMany
+    {
+        return $this->hasMany(Workspace::class, 'owner_id');
+    }
+
+    public function canCreateWorkspace(): bool
+    {
+        return $this->is_admin
+            || ($this->can_create_workspaces && $this->ownedWorkspaces()->count() < $this->workspaceAllowance());
     }
 
     public function workspaces(): BelongsToMany

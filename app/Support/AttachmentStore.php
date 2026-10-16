@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Attachment;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\UploadedFile;
@@ -37,7 +38,7 @@ class AttachmentStore
 
     public static function rules(): array
     {
-        return ['file', 'max:'.self::MAX_KB, 'extensions:'.implode(',', array_keys(self::ALLOWED))];
+        return ['file', 'max:'.min(self::MAX_KB * 5, (int) Setting::get('max_upload_mb') * 1024), 'extensions:'.implode(',', array_keys(self::ALLOWED))];
     }
 
     public function store(UploadedFile $file, Workspace $workspace, User $user): Attachment

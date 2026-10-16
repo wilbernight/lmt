@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
         $createWorkspace($ehsan, 'حسابداری', 'emerald')->addMember($reza, WorkspaceRole::Admin);
         $createWorkspace($ehsan, 'شخصی', 'violet');
 
-        $ehsan->forceFill(['current_workspace_id' => $dev->id])->save();
+        $ehsan->forceFill(['current_workspace_id' => $dev->id, 'is_admin' => true])->save();
 
         $dev->addMember($sara, WorkspaceRole::Admin);
         $dev->addMember($ali);

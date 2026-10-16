@@ -25,6 +25,11 @@ class EnsureWorkspaceMember
         $role = $user->roleIn($workspace);
         abort_if($role === null, 404);
 
+        // A workspace locked by a site administrator is closed to its members.
+        if ($workspace->suspended_at && ! $user->is_admin) {
+            abort(423, 'این میزکار توسط مدیر سایت غیرفعال شده است.');
+        }
+
         if ($minimumRole !== null) {
             abort_unless($role->atLeast(WorkspaceRole::from($minimumRole)), 403);
         }

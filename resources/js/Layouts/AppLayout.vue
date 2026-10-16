@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Bell, Building2, ChartColumn, ChevronDown, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
-    MessagesSquare, Monitor, Moon, Plus, Search, Settings, ShieldCheck, StickyNote, Sun, UserPlus, Users, X,
+    Gauge, MessagesSquare, Monitor, Moon, Plus, Search, Settings, ShieldCheck, SlidersHorizontal, StickyNote, Sun, UserPlus, Users, X,
 } from '@lucide/vue';
 import Avatar from '@/Components/ui/Avatar.vue';
 import BrandLogo from '@/Components/BrandLogo.vue';
@@ -31,8 +31,20 @@ const drawer = ref(false);
 const palette = ref(false);
 const notifications = ref(false);
 
+const adminNav = computed(() =>
+    user.value?.is_admin
+        ? [
+              { label: 'پنل مدیریت سایت', href: route('admin.dashboard'), icon: Gauge, tone: 'rose', match: '/admin', exact: true },
+              { label: 'کاربران', href: route('admin.users.index'), icon: Users, tone: 'rose', match: '/admin/users' },
+              { label: 'میزکارها', href: route('admin.workspaces.index'), icon: Building2, tone: 'rose', match: '/admin/workspaces' },
+              { label: 'تنظیمات سایت', href: route('admin.settings'), icon: SlidersHorizontal, tone: 'rose', match: '/admin/settings' },
+          ]
+        : [],
+);
+
 const nav = computed(() => {
-    if (!ws.value) return [];
+    const onAdmin = current.value.startsWith('/admin');
+    if (onAdmin || !ws.value) return adminNav.value.length ? [adminNav.value] : [];
     const id = ws.value.id;
 
     const items = [
@@ -52,7 +64,9 @@ const nav = computed(() => {
         more.push({ label: 'مانیتورینگ', href: route('monitoring', id), icon: ChartColumn, tone: 'violet', match: `/w/${id}/monitoring` });
     }
 
-    return [items, more];
+    const groups = [items, more];
+    if (adminNav.value.length) groups.push([adminNav.value[0]]);
+    return groups;
 });
 
 const isActive = (item) => {
@@ -265,6 +279,7 @@ const otherMembers = computed(() => (ws.value?.members ?? []).filter((m) => m.id
                             <span v-if="!user.two_factor" class="chip ms-auto bg-warning-soft text-warning">۲FA خاموش</span>
                         </MenuItem>
                         <MenuItem v-if="ws?.is_admin" :href="route('workspace.settings', ws.id)"><Building2 class="size-4" /> تنظیمات میزکار</MenuItem>
+                        <MenuItem v-if="user.is_admin" :href="route('admin.dashboard')"><Gauge class="size-4" /> پنل مدیریت سایت</MenuItem>
                         <div class="my-1 border-t border-line" />
                         <MenuItem :href="route('logout')" method="post" danger><LogOut class="size-4" /> خروج</MenuItem>
                     </Dropdown>

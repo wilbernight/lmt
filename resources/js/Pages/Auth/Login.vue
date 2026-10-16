@@ -40,7 +40,7 @@ const submit = () => form.post('/login', { onFinish: () => form.reset('password'
         <Button type="submit" size="lg" block :loading="form.processing">ورود</Button>
     </form>
 
-    <p class="mt-8 text-center text-sm text-ink-3">
+    <p v-if="$page.props.app.registration_open" class="mt-8 text-center text-sm text-ink-3">
         حساب کاربری ندارید؟
         <Link href="/register" class="font-bold text-accent-ink hover:underline">ثبت‌نام رایگان</Link>
     </p>

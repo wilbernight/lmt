@@ -19,6 +19,11 @@ class Workspace extends Model
 
     protected $hidden = ['storage_limit'];
 
+    protected function casts(): array
+    {
+        return ['suspended_at' => 'datetime', 'storage_used' => 'integer', 'storage_limit' => 'integer'];
+    }
+
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');

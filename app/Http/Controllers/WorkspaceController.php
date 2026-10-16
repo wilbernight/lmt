@@ -15,9 +15,16 @@ use Inertia\Response;
 
 class WorkspaceController extends Controller
 {
-    public function create(): Response
+    public function create(Request $request): Response
     {
-        return Inertia::render('Workspaces/Create', ['colors' => Workspace::COLORS]);
+        $user = $request->user();
+
+        return Inertia::render('Workspaces/Create', [
+            'colors' => Workspace::COLORS,
+            'allowed' => $user->canCreateWorkspace(),
+            'owned' => $user->ownedWorkspaces()->count(),
+            'limit' => $user->is_admin ? null : $user->workspaceAllowance(),
+        ]);
     }
 
     public function store(Request $request, CreateWorkspace $createWorkspace): RedirectResponse
@@ -27,7 +34,9 @@ class WorkspaceController extends Controller
             'color' => ['nullable', Rule::in(Workspace::COLORS)],
         ]);
 
-        abort_if($request->user()->workspaces()->wherePivot('role', WorkspaceRole::Owner->value)->count() >= 20, 422, 'حداکثر تعداد میزکار ساخته شده است.');
+        if (! $request->user()->canCreateWorkspace()) {
+            return back()->withErrors(['name' => 'امکان ساخت میزکار جدید برای حساب شما وجود ندارد (سقف مجاز پر شده یا غیرفعال است).']);
+        }
 
         $workspace = $createWorkspace($request->user(), trim($data['name']), $data['color'] ?? 'amber');
 

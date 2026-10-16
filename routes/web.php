@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminSettingsController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminWorkspaceController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChecklistController;
@@ -59,6 +63,24 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
 
     Route::get('/attachments/{attachment}', [AttachmentController::class, 'show'])->name('attachments.show');
     Route::delete('/attachments/{attachment}', [AttachmentController::class, 'destroy'])->name('attachments.destroy');
+
+    // Site administration. Hidden (404) for non-admins; sensitive pages re-ask for the password.
+    Route::prefix('admin')->name('admin.')->middleware(['site-admin', 'password.confirm', 'throttle:writes'])->group(function () {
+        Route::get('/', AdminDashboardController::class)->name('dashboard');
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
+        Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend'])->name('users.suspend');
+        Route::post('/users/{user}/unsuspend', [AdminUserController::class, 'unsuspend'])->name('users.unsuspend');
+        Route::post('/users/{user}/logout', [AdminUserController::class, 'logout'])->name('users.logout');
+        Route::post('/users/{user}/reset-2fa', [AdminUserController::class, 'resetTwoFactor'])->name('users.reset-2fa');
+        Route::post('/users/{user}/verify', [AdminUserController::class, 'verify'])->name('users.verify');
+        Route::get('/workspaces', [AdminWorkspaceController::class, 'index'])->name('workspaces.index');
+        Route::put('/workspaces/{workspace}', [AdminWorkspaceController::class, 'update'])->name('workspaces.update');
+        Route::post('/workspaces/{workspace}/lock', [AdminWorkspaceController::class, 'lock'])->name('workspaces.lock');
+        Route::get('/settings', [AdminSettingsController::class, 'show'])->name('settings');
+        Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
+    });
 
     // Everything inside a workspace. The "workspace" middleware returns 404 to non-members.
     Route::prefix('w/{workspace}')->middleware('workspace')->scopeBindings()->group(function () {

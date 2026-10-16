@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureSiteAdmin;
 use App\Http\Middleware\EnsureWorkspaceMember;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'workspace' => EnsureWorkspaceMember::class,
+            'site-admin' => EnsureSiteAdmin::class,
         ]);
 
         // Only trust X-Forwarded-* headers from proxies listed in TRUSTED_PROXIES.
@@ -45,7 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
             $status = $response->getStatusCode();
 
-            if (! app()->environment(['local', 'testing']) && in_array($status, [403, 404, 419, 429, 500, 503], true)) {
+            if (! app()->environment(['local', 'testing']) && in_array($status, [403, 404, 419, 423, 429, 500, 503], true)) {
                 if ($status === 419) {
                     return back()->with('error', 'نشست شما منقضی شد. لطفاً دوباره تلاش کنید.');
                 }

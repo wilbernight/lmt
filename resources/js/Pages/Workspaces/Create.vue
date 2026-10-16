@@ -5,7 +5,7 @@ import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import ColorSwatches from '@/Components/ui/ColorSwatches.vue';
 
-defineProps({ colors: Array });
+defineProps({ colors: Array, allowed: Boolean, owned: Number, limit: Number });
 const form = useForm({ name: '', color: 'amber' });
 </script>
 
@@ -22,9 +22,12 @@ const form = useForm({ name: '', color: 'amber' });
                     <h1 class="text-2xl font-black">ساخت میزکار جدید</h1>
                     <p class="mt-1 text-sm text-ink-3">هر میزکار فضای مستقلی با اعضا، پروژه‌ها و نامه‌های خودش است.</p>
                 </div>
+                <div v-if="!allowed" class="rounded-xl bg-warning-soft px-4 py-3 text-sm leading-7 text-warning">
+                    امکان ساخت میزکار جدید برای حساب شما وجود ندارد{{ limit !== null ? ` (سقف شما ${limit} میزکار است و ${owned} میزکار دارید)` : '' }}. برای افزایش سقف با مدیر سایت تماس بگیرید.
+                </div>
                 <Field label="نام میزکار" :error="form.errors.name"><input v-model="form.name" autofocus maxlength="80" class="field h-11" placeholder="مثلاً: برنامه‌نویسی، حسابداری..." /></Field>
                 <Field label="رنگ شاخص"><ColorSwatches v-model="form.color" :colors="colors" /></Field>
-                <Button type="submit" size="lg" block :loading="form.processing">ساخت میزکار</Button>
+                <Button type="submit" size="lg" block :loading="form.processing" :disabled="!allowed">ساخت میزکار</Button>
             </form>
         </div>
     </div>

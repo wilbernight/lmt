@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\WorkspaceRole;
+use App\Models\Setting;
 use App\Models\Task;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
@@ -26,7 +27,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
-            'app' => ['name' => config('app.name')],
+            'app' => ['name' => config('app.name'), 'registration_open' => (bool) Setting::get('registration_open')],
             'auth' => fn () => $user ? [
                 'user' => [
                     ...$user->toCard(),
@@ -35,6 +36,7 @@ class HandleInertiaRequests extends Middleware
                     'theme' => $user->theme,
                     'two_factor' => $user->hasTwoFactorEnabled(),
                     'verified' => $user->hasVerifiedEmail(),
+                    'is_admin' => $user->is_admin,
                 ],
             ] : null,
             'workspace' => fn () => $workspace && $user ? $this->workspacePayload($workspace, $user) : null,

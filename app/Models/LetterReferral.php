@@ -12,6 +12,11 @@ class LetterReferral extends Model
 
     protected $fillable = ['note'];
 
+    protected function casts(): array
+    {
+        return ['note' => 'encrypted'];
+    }
+
     public function letter(): BelongsTo
     {
         return $this->belongsTo(Letter::class);

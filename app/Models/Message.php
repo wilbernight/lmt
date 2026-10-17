@@ -16,7 +16,7 @@ class Message extends Model
 
     protected function casts(): array
     {
-        return ['edited_at' => 'datetime'];
+        return ['edited_at' => 'datetime', 'body' => 'encrypted'];
     }
 
     public function conversation(): BelongsTo

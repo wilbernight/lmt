@@ -14,7 +14,7 @@ class ChecklistItem extends Model
 
     protected function casts(): array
     {
-        return ['is_done' => 'boolean'];
+        return ['is_done' => 'boolean', 'body' => 'encrypted'];
     }
 
     public function task(): BelongsTo

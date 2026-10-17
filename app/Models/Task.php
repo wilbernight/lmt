@@ -33,6 +33,8 @@ class Task extends Model
             'completed_at' => 'datetime',
             'priority' => 'integer',
             'position' => 'float',
+            'title' => 'encrypted',
+            'description' => 'encrypted',
         ];
     }
 

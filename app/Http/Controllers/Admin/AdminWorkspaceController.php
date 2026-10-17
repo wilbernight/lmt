@@ -18,7 +18,7 @@ class AdminWorkspaceController extends Controller
     {
         $workspaces = Workspace::query()
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w
-                ->where('name', 'like', $this->like($request->string('q')))
+                ->whereIn('workspaces.id', $this->matchingIds($q->clone(), ['name'], (string) $request->string('q')))
                 ->orWhereHas('owner', fn ($o) => $o->where('email', 'like', $this->like($request->string('q'))))))
             ->when($request->query('status') === 'locked', fn ($q) => $q->whereNotNull('suspended_at'))
             ->when($request->query('status') === 'full', fn ($q) => $q->whereRaw('storage_used >= storage_limit * 0.9'))

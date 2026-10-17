@@ -44,9 +44,9 @@ class HandleInertiaRequests extends Middleware
             ] : null,
             'workspace' => fn () => $workspace && $user ? $this->workspacePayload($workspace, $user) : null,
             'workspaces' => fn () => $user ? $user->workspaces()
-                ->orderBy('name')
                 ->get(['workspaces.id', 'workspaces.name', 'workspaces.color'])
                 ->map(fn (Workspace $w) => ['id' => $w->id, 'name' => $w->name, 'color' => $w->color, 'role' => $w->pivot->role])
+                ->sortBy('name')->values() // names are encrypted at rest: sorted after decryption
                 : [],
             // The viewer's running task timer and today's attendance, for the header.
             'timer' => fn () => $user ? TimeController::timerPayload(

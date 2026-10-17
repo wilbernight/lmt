@@ -29,9 +29,7 @@ class NoteController extends Controller
             ->when($view === 'archived', fn ($q) => $q->whereNotNull('archived_at'))
             ->when($view === 'trash', fn ($q) => $q->onlyTrashed())
             ->when($request->filled('label'), fn ($q) => $q->whereHas('labels', fn ($l) => $l->whereKey($request->string('label'))))
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w
-                ->where('title', 'like', $this->like($request->string('q')))
-                ->orWhere('body', 'like', $this->like($request->string('q')))))
+            ->when($request->filled('q'), fn ($q) => $q->whereIn('notes.id', $this->matchingIds($q->clone(), ['title', 'body', 'items'], (string) $request->string('q'))))
             ->with('labels:id,name,color')
             ->orderByDesc('pinned')
             ->latest('updated_at')

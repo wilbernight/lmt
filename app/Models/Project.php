@@ -27,7 +27,7 @@ class Project extends Model
 
     protected function casts(): array
     {
-        return ['starts_on' => 'date', 'due_on' => 'date', 'archived_at' => 'datetime'];
+        return ['starts_on' => 'date', 'due_on' => 'date', 'archived_at' => 'datetime', 'name' => 'encrypted', 'description' => 'encrypted'];
     }
 
     public function creator(): BelongsTo

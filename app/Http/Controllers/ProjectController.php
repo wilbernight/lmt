@@ -32,7 +32,7 @@ class ProjectController extends Controller
             ->inWorkspace($workspace)
             ->visibleTo($user, $workspace)
             ->when($archived, fn ($q) => $q->whereNotNull('archived_at'), fn ($q) => $q->whereNull('archived_at'))
-            ->when($request->filled('q'), fn ($q) => $q->where('name', 'like', $this->like($request->string('q'))))
+            ->when($request->filled('q'), fn ($q) => $q->whereIn('projects.id', $this->matchingIds($q->clone(), ['name', 'description'], (string) $request->string('q'))))
             ->with('members:id,name,avatar_path,last_seen_at')
             ->addSelect(['tracked_seconds' => TimeEntry::selectRaw('COALESCE(SUM('.TimeEntry::secondsSql().'), 0)')->whereColumn('project_id', 'projects.id')])
             ->withCount([
@@ -116,7 +116,7 @@ class ProjectController extends Controller
             ->withCount(TaskResource::cardCounts())
             ->when($request->filled('assignee'), fn ($q) => $q->whereHas('assignees', fn ($a) => $a->whereKey($request->integer('assignee'))))
             ->when($request->filled('label'), fn ($q) => $q->whereHas('labels', fn ($l) => $l->whereKey($request->string('label'))))
-            ->when($request->filled('q'), fn ($q) => $q->where('title', 'like', $this->like($request->string('q'))))
+            ->when($request->filled('q'), fn ($q) => $q->whereIn('tasks.id', $this->matchingIds($q->clone(), ['title', 'description'], (string) $request->string('q'))))
             ->orderBy('position')
             ->get();
 

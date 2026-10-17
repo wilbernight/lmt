@@ -17,6 +17,11 @@ class Attachment extends Model
 
     protected $fillable = ['original_name'];
 
+    protected function casts(): array
+    {
+        return ['original_name' => 'encrypted'];
+    }
+
     protected $hidden = ['path', 'disk', 'sha256'];
 
     public function attachable(): MorphTo

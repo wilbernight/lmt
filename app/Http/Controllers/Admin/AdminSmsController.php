@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Setting;
+use App\Models\SmsGroup;
 use App\Models\SmsMessage;
 use App\Models\User;
 use App\Services\Sms\SmsSender;
@@ -38,8 +39,16 @@ class AdminSmsController extends Controller
             'maxRecipients' => self::MAX_RECIPIENTS,
             'usedToday' => $sms->usedToday(),
             'live' => $sms->isLive(),
-            'people' => User::whereNotNull('phone')->where('phone', '!=', '')->whereNull('suspended_at')
-                ->orderBy('name')->get(['id', 'name', 'phone', 'avatar_path', 'last_seen_at'])
+            'groups' => SmsGroup::with('users:id,phone')->get()->sortBy('name')->values()->map(fn (SmsGroup $g) => [
+                'id' => $g->id, 'name' => $g->name, 'color' => $g->color,
+                'members' => $g->users->pluck('id'),
+                'reachable' => $g->users->filter(fn ($u) => filled($u->phone))->count(),
+            ]),
+            'allUsers' => User::whereNull('suspended_at')->orderBy('name')->get(['id', 'name', 'phone', 'avatar_path', 'last_seen_at'])
+                ->map(fn (User $u) => [...$u->toCard(), 'has_phone' => filled($u->phone)]),
+            'groupColors' => SmsGroup::COLORS,
+            'people' => User::whereNotNull('phone')->whereNull('suspended_at')
+                ->orderBy('name')->get(['id', 'name', 'phone', 'avatar_path', 'last_seen_at'])->filter(fn (User $u) => filled($u->phone))->values()
                 ->map(fn (User $u) => [...$u->toCard(), 'phone' => $sms->mask($u->phone)]),
             'history' => SmsMessage::query()
                 ->with(['recipient:id,name', 'sender:id,name'])
@@ -97,16 +106,79 @@ class AdminSmsController extends Controller
         }
     }
 
+    public function storeGroup(Request $request): RedirectResponse
+    {
+        $data = $this->validateGroup($request);
+
+        $group = new SmsGroup(['name' => trim($data['name']), 'color' => $data['color']]);
+        $group->created_by = $request->user()->id;
+        $group->save();
+        $group->users()->sync($this->existingUsers($data['members'] ?? []));
+
+        AuditLog::record('admin.sms_group_created', properties: ['name' => $group->name, 'members' => $group->users()->count()]);
+
+        return back()->with('success', "گروه «{$group->name}» ساخته شد.");
+    }
+
+    public function updateGroup(Request $request, SmsGroup $group): RedirectResponse
+    {
+        $data = $this->validateGroup($request, $group);
+
+        $group->update(['name' => trim($data['name']), 'color' => $data['color']]);
+        $group->users()->sync($this->existingUsers($data['members'] ?? []));
+
+        AuditLog::record('admin.sms_group_updated', properties: ['name' => $group->name, 'members' => $group->users()->count()]);
+
+        return back()->with('success', 'گروه به‌روزرسانی شد.');
+    }
+
+    public function destroyGroup(SmsGroup $group): RedirectResponse
+    {
+        AuditLog::record('admin.sms_group_deleted', properties: ['name' => $group->name]);
+        $group->delete();
+
+        return back()->with('success', 'گروه حذف شد.');
+    }
+
+    private function validateGroup(Request $request, ?SmsGroup $group = null): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:60', function (string $attribute, mixed $value, \Closure $fail) use ($group) {
+                // Names are encrypted at rest: compare after decryption.
+                if (SmsGroup::when($group, fn ($q) => $q->whereKeyNot($group->id))->get(['id', 'name'])
+                    ->contains(fn ($g) => $this->normaliseSearch($g->name) === $this->normaliseSearch((string) $value))) {
+                    $fail('گروهی با این نام وجود دارد.');
+                }
+            }],
+            'color' => ['required', Rule::in(SmsGroup::COLORS)],
+            'members' => ['array', 'max:1000'],
+            'members.*' => ['integer'],
+        ]);
+    }
+
+    private function existingUsers(array $ids): array
+    {
+        return User::whereIn('id', array_map('intval', $ids))->pluck('id')->all();
+    }
+
     public function send(Request $request, SmsSender $sms): RedirectResponse
     {
         $data = $request->validate([
             'users' => ['array', 'max:'.self::MAX_RECIPIENTS],
             'users.*' => ['integer'],
+            'groups' => ['array', 'max:20'],
+            'groups.*' => ['integer'],
             'numbers' => ['nullable', 'string', 'max:2000'],
             'body' => ['required', 'string', 'max:670'], // 10 UCS-2 parts
         ]);
 
-        $recipients = User::whereIn('id', $data['users'] ?? [])->whereNotNull('phone')->get(['id', 'phone'])
+        // A group counts as all its (active) members.
+        $userIds = collect($data['users'] ?? [])->merge(
+            SmsGroup::whereIn('id', $data['groups'] ?? [])->with('users:id')->get()->flatMap(fn ($g) => $g->users->pluck('id'))
+        )->unique();
+
+        $recipients = User::whereIn('id', $userIds)->whereNull('suspended_at')->whereNotNull('phone')->get(['id', 'phone'])
+            ->filter(fn (User $u) => filled($u->phone))
             ->map(fn (User $u) => ['phone' => $u->phone, 'user_id' => $u->id]);
 
         foreach (preg_split('/[\s,،;]+/u', (string) ($data['numbers'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) as $number) {

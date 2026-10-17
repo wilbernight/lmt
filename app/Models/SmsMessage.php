@@ -17,6 +17,11 @@ class SmsMessage extends Model
 
     protected $fillable = ['phone', 'body', 'status', 'error', 'duration_ms'];
 
+    protected function casts(): array
+    {
+        return ['body' => 'encrypted'];
+    }
+
     public function recipient(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

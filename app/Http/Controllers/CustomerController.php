@@ -28,16 +28,18 @@ class CustomerController extends Controller
             ->paginate(40)
             ->withQueryString()
             ->through(fn (Customer $c) => [
-                ...$c->only(['id', 'kind', 'name', 'company', 'phone', 'mobile', 'email', 'city', 'stage', 'deal_value']),
+                ...$c->only(['id', 'kind', 'name', 'company', 'phone', 'mobile', 'email', 'city', 'stage']),
+                'deal_value' => $c->deal_value !== null ? (int) $c->deal_value : null,
                 'owner' => $c->owner?->toCard(),
                 'labels' => $c->labels->map->only(['id', 'name', 'color']),
                 'interactions_count' => $c->interactions_count,
                 'updated_at' => $c->updated_at->toIso8601String(),
             ]);
 
-        $pipeline = Customer::query()->inWorkspace($workspace)
-            ->selectRaw('stage, count(*) as total, coalesce(sum(deal_value), 0) as value')
-            ->groupBy('stage')->get()->keyBy('stage');
+        // Deal values are encrypted at rest, so the pipeline is summed after decryption.
+        $pipeline = Customer::query()->inWorkspace($workspace)->get(['id', 'stage', 'deal_value'])
+            ->groupBy('stage')
+            ->map(fn ($rows) => (object) ['total' => $rows->count(), 'value' => $rows->sum(fn ($c) => (int) $c->deal_value)]);
 
         return Inertia::render('Customers/Index', [
             'customers' => $customers,
@@ -188,12 +190,9 @@ class CustomerController extends Controller
     private function filtered(Request $request, Workspace $workspace)
     {
         return Customer::query()->inWorkspace($workspace)
-            ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w
-                ->where('name', 'like', $this->like($request->string('q')))
-                ->orWhere('company', 'like', $this->like($request->string('q')))
-                ->orWhere('phone', 'like', $this->like($request->string('q')))
-                ->orWhere('mobile', 'like', $this->like($request->string('q')))
-                ->orWhere('email', 'like', $this->like($request->string('q')))))
+            ->when($request->filled('q'), fn ($q) => $q->whereIn('customers.id', $this->matchingIds(
+                $q->clone(), ['name', 'company', 'phone', 'mobile', 'email', 'city'], (string) $request->string('q'),
+            )))
             ->when($request->filled('stage'), fn ($q) => $q->where('stage', $request->string('stage')))
             ->when($request->filled('owner'), fn ($q) => $q->where('owner_id', $request->integer('owner')))
             ->when($request->filled('label'), fn ($q) => $q->whereHas('labels', fn ($l) => $l->whereKey($request->string('label'))));

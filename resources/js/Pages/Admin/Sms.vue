@@ -1,20 +1,21 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { CircleCheck, CircleX, MessageSquareText, Plug, RadioTower, Search, Send, Settings2, Signal, Users } from '@lucide/vue';
+import { CircleCheck, CircleX, MessageSquareText, Plug, RadioTower, Search, Send, Settings2, Signal, Users, UsersRound } from '@lucide/vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Avatar from '@/Components/ui/Avatar.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import SmsGroupManager from '@/Components/SmsGroupManager.vue';
 import http from '@/lib/http';
 import { faNum, jDateTime } from '@/lib/format';
 import { confirmDialog } from '@/composables/useConfirm';
 
 const props = defineProps({
     settings: Object, hardLimit: Number, maxRecipients: Number, usedToday: Number, live: Boolean,
-    people: Array, history: Object, statuses: Object, filters: Object,
+    people: Array, history: Object, statuses: Object, filters: Object, groups: Array, allUsers: Array, groupColors: Array,
 });
 
 // ---- Settings ----------------------------------------------------------
@@ -36,12 +37,21 @@ const signalPercent = computed(() => (modem.value?.signal != null ? Math.round((
 const operatorName = (op) => ({ TCI: 'همراه اول', 'MCI': 'همراه اول', IR: 'ایرانسل', 'MTN Irancell': 'ایرانسل', RighTel: 'رایتل' })[op] ?? op;
 
 // ---- Compose -----------------------------------------------------------
-const form = useForm({ users: [], numbers: '', body: '' });
+const form = useForm({ users: [], groups: [], numbers: '', body: '' });
+const managing = ref(false);
+const toggleGroup = (id) => (form.groups = form.groups.includes(id) ? form.groups.filter((x) => x !== id) : [...form.groups, id]);
 const q = ref('');
 const shownPeople = computed(() => props.people.filter((p) => !q.value || p.name.includes(q.value.trim())));
 const toggle = (id) => (form.users = form.users.includes(id) ? form.users.filter((x) => x !== id) : [...form.users, id]);
 const typedNumbers = computed(() => form.numbers.split(/[\s,،;]+/).filter(Boolean).length);
-const recipientCount = computed(() => form.users.length + typedNumbers.value);
+// Distinct people with a phone: picked one by one or through a group.
+const reachableIds = computed(() => new Set(props.people.map((p) => p.id)));
+const pickedPeople = computed(() => {
+    const ids = new Set(form.users);
+    props.groups.filter((g) => form.groups.includes(g.id)).forEach((g) => g.members.forEach((id) => reachableIds.value.has(id) && ids.add(id)));
+    return ids.size;
+});
+const recipientCount = computed(() => pickedPeople.value + typedNumbers.value);
 
 // SIM800: Latin = GSM 7-bit (160 / 153 per part); Persian = UCS-2 (70 / 67 per part).
 const isUnicode = computed(() => /[^\x20-\x7E\r\n]/.test(form.body));
@@ -78,6 +88,29 @@ const usedPercent = computed(() => Math.round((props.usedToday / props.settings.
         <!-- Compose -->
         <section class="card p-6">
             <h2 class="flex items-center gap-2 font-bold"><Send class="size-4 text-accent" /> ارسال پیامک</h2>
+
+            <div class="mt-5">
+                <div class="mb-2 flex items-center justify-between">
+                    <p class="label mb-0 flex items-center gap-1.5"><UsersRound class="size-3.5" /> ارسال به گروه</p>
+                    <button type="button" class="flex items-center gap-1 text-xs font-semibold text-accent-ink hover:underline" @click="managing = true"><Settings2 class="size-3.5" /> مدیریت گروه‌ها</button>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        v-for="g in groups"
+                        :key="g.id"
+                        type="button"
+                        class="flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors"
+                        :class="[`tone-${g.color}`, form.groups.includes(g.id) ? 'tone-chip border-transparent' : 'border-line-strong text-ink-2 hover:bg-surface-2']"
+                        :aria-pressed="form.groups.includes(g.id)"
+                        @click="toggleGroup(g.id)"
+                    >
+                        <span class="size-2.5 rounded-full tone-dot" />
+                        {{ g.name }}
+                        <span class="num text-xs font-normal opacity-75">{{ faNum(g.reachable) }}</span>
+                    </button>
+                    <button v-if="!groups.length" type="button" class="rounded-xl border border-dashed border-line-strong px-3 py-2 text-sm text-ink-3 hover:text-ink" @click="managing = true">+ ساخت اولین گروه</button>
+                </div>
+            </div>
 
             <div class="mt-5 grid gap-5 lg:grid-cols-2">
                 <div>
@@ -168,6 +201,8 @@ const usedPercent = computed(() => Math.round((props.usedToday / props.settings.
             </form>
         </section>
     </div>
+
+    <SmsGroupManager :show="managing" :groups="groups" :users="allUsers" :colors="groupColors" @close="managing = false" />
 
     <!-- History -->
     <section class="card mt-5 overflow-hidden">

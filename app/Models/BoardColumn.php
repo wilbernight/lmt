@@ -15,7 +15,7 @@ class BoardColumn extends Model
 
     protected function casts(): array
     {
-        return ['is_done' => 'boolean'];
+        return ['is_done' => 'boolean', 'name' => 'encrypted'];
     }
 
     public function project(): BelongsTo

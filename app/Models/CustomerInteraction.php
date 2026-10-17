@@ -16,7 +16,7 @@ class CustomerInteraction extends Model
 
     protected function casts(): array
     {
-        return ['happened_at' => 'datetime'];
+        return ['happened_at' => 'datetime', 'body' => 'encrypted'];
     }
 
     public function customer(): BelongsTo

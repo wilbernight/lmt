@@ -19,7 +19,7 @@ class TimeEntry extends Model
 
     protected function casts(): array
     {
-        return ['started_at' => 'datetime', 'ended_at' => 'datetime', 'seconds' => 'integer'];
+        return ['started_at' => 'datetime', 'ended_at' => 'datetime', 'seconds' => 'integer', 'note' => 'encrypted'];
     }
 
     public function task(): BelongsTo

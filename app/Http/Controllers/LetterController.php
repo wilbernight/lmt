@@ -48,7 +48,7 @@ class LetterController extends Controller
 
         $letters = $query
             ->when($request->filled('q'), fn ($q) => $q->where(fn ($w) => $w
-                ->where('subject', 'like', $this->like($request->string('q')))
+                ->whereIn('letters.id', $this->matchingIds($q->clone(), ['subject', 'body'], (string) $request->string('q')))
                 ->orWhere('number', (int) $request->query('q'))))
             ->when($request->filled('label'), fn ($q) => $q->whereHas('labels', fn ($l) => $l->whereKey($request->string('label'))))
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))

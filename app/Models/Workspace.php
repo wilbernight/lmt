@@ -21,7 +21,7 @@ class Workspace extends Model
 
     protected function casts(): array
     {
-        return ['suspended_at' => 'datetime', 'storage_used' => 'integer', 'storage_limit' => 'integer'];
+        return ['suspended_at' => 'datetime', 'storage_used' => 'integer', 'storage_limit' => 'integer', 'name' => 'encrypted'];
     }
 
     public function owner(): BelongsTo

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Setting;
+use App\Models\SmsGroup;
 use App\Models\SmsMessage;
 use App\Models\User;
 use App\Services\Sms\GsmModem;
@@ -138,6 +139,33 @@ class SmsTest extends TestCase
         $this->asAdmin($admin)->put('/admin/sms/settings', [...$base, 'host' => '192.168.77.250'])->assertSessionHasNoErrors();
 
         $this->assertSame('192.168.77.250', Setting::get('sms_host'));
+    }
+
+    public function test_admin_groups_colleagues_and_sends_to_a_group(): void
+    {
+        $admin = $this->admin();
+        $a = User::factory()->create(['phone' => '09121111111']);
+        $b = User::factory()->create(['phone' => '09122222222']);
+        $noPhone = User::factory()->create();
+        $suspended = User::factory()->create(['phone' => '09123333333']);
+        $suspended->forceFill(['suspended_at' => now()])->save();
+
+        $this->asAdmin($admin)->post('/admin/sms/groups', ['name' => 'تیم فنی', 'color' => 'sky', 'members' => [$a->id, $b->id, $noPhone->id, $suspended->id, 999999]])
+            ->assertSessionHasNoErrors();
+        $group = SmsGroup::firstOrFail();
+        $this->assertSame(4, $group->users()->count(), 'unknown ids are dropped');
+
+        // Group plus one of its members picked again: each person gets one message.
+        $this->asAdmin($admin)->post('/admin/sms/send', ['groups' => [$group->id], 'users' => [$a->id], 'body' => 'جلسه ساعت ۱۰'])->assertSessionHas('success');
+
+        $this->assertEqualsCanonicalizing(['+989121111111', '+989122222222'], array_column($this->sent, 0));
+
+        $this->asAdmin($admin)->post('/admin/sms/groups', ['name' => 'تیم فنی', 'color' => 'sky'])->assertSessionHasErrors('name');
+        $this->asAdmin($admin)->delete("/admin/sms/groups/{$group->id}")->assertRedirect();
+        $this->assertSame(0, SmsGroup::count());
+
+        $member = User::factory()->create();
+        $this->actingAs($member)->withSession(['auth.password_confirmed_at' => time()])->post('/admin/sms/groups', ['name' => 'x', 'color' => 'sky'])->assertNotFound();
     }
 
     public function test_the_modem_refuses_numbers_that_could_inject_at_commands(): void

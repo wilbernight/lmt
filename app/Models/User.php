@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -57,6 +58,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'can_create_workspaces' => 'boolean',
             'max_workspaces' => 'integer',
             'storage_quota' => 'integer',
+            'phone' => 'encrypted',
         ];
     }
 
@@ -86,6 +88,12 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->is_admin
             || ($this->can_create_workspaces && $this->ownedWorkspaces()->count() < $this->workspaceAllowance());
+    }
+
+    /** Same as Notifiable's, but through the model that encrypts the payload. */
+    public function notifications(): MorphMany
+    {
+        return $this->morphMany(Notification::class, 'notifiable')->latest();
     }
 
     public function workspaces(): BelongsToMany

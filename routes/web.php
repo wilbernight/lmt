@@ -88,6 +88,9 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::put('/sms/settings', [AdminSmsController::class, 'updateSettings'])->name('sms.settings');
         Route::post('/sms/test', [AdminSmsController::class, 'test'])->middleware('throttle:10,1')->name('sms.test');
         Route::post('/sms/send', [AdminSmsController::class, 'send'])->middleware('throttle:10,1')->name('sms.send');
+        Route::post('/sms/groups', [AdminSmsController::class, 'storeGroup'])->name('sms.groups.store');
+        Route::put('/sms/groups/{group}', [AdminSmsController::class, 'updateGroup'])->name('sms.groups.update');
+        Route::delete('/sms/groups/{group}', [AdminSmsController::class, 'destroyGroup'])->name('sms.groups.destroy');
         Route::get('/settings', [AdminSettingsController::class, 'show'])->name('settings');
         Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
     });

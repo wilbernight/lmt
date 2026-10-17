@@ -15,7 +15,7 @@ class AuditLog extends Model
 
     protected function casts(): array
     {
-        return ['properties' => 'array', 'created_at' => 'datetime'];
+        return ['properties' => 'encrypted:array', 'created_at' => 'datetime'];
     }
 
     public function user(): BelongsTo

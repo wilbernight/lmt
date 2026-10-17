@@ -13,7 +13,7 @@ class TaskActivity extends Model
 
     protected function casts(): array
     {
-        return ['data' => 'array', 'created_at' => 'datetime'];
+        return ['data' => 'encrypted:array', 'created_at' => 'datetime'];
     }
 
     public function user(): BelongsTo

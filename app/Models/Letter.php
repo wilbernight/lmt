@@ -22,7 +22,7 @@ class Letter extends Model
 
     protected function casts(): array
     {
-        return ['confidential' => 'boolean', 'sender_archived_at' => 'datetime'];
+        return ['confidential' => 'boolean', 'sender_archived_at' => 'datetime', 'subject' => 'encrypted', 'body' => 'encrypted'];
     }
 
     public function sender(): BelongsTo

@@ -15,6 +15,7 @@ use App\Models\TaskComment;
 use App\Models\TimeEntry;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Support\DataCipher;
 use App\Support\Presence;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
@@ -38,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(DataCipher::class, fn () => DataCipher::fromConfig());
     }
 
     public function boot(): void
@@ -47,6 +48,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Catch lazy loading, silently discarded attributes and missing attributes during development.
         Model::shouldBeStrict(! $production);
+
+        // Every "encrypted" cast uses the data key (AES-256-GCM), not APP_KEY.
+        Model::encryptUsing($this->app->make(DataCipher::class)->encrypter());
 
         // Never store PHP class names in polymorphic columns.
         Relation::enforceMorphMap([

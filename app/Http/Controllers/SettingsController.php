@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\DataCipher;
+use finfo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response as HttpResponse;
 
 /** Personal account settings: profile, avatar, password, 2FA, sessions, activity. */
 class SettingsController extends Controller
@@ -64,7 +66,9 @@ class SettingsController extends Controller
         $user = $request->user();
         $old = $user->avatar_path;
 
-        $path = $request->file('avatar')->storeAs('avatars', $user->id.'-'.Str::random(24).'.img', 'local');
+        // Stored encrypted, like every other uploaded file.
+        $path = 'avatars/'.$user->id.'-'.Str::random(24).'.img';
+        Storage::disk('local')->put($path, app(DataCipher::class)->encryptFile((string) file_get_contents($request->file('avatar')->getRealPath())));
         $user->forceFill(['avatar_path' => $path])->save();
 
         if ($old) {
@@ -87,7 +91,7 @@ class SettingsController extends Controller
     }
 
     /** Avatars are visible only to people who share a workspace with their owner. */
-    public function showAvatar(Request $request, User $user): StreamedResponse
+    public function showAvatar(Request $request, User $user): HttpResponse
     {
         $viewer = $request->user();
 
@@ -99,10 +103,11 @@ class SettingsController extends Controller
 
         abort_unless($shares && $user->avatar_path && Storage::disk('local')->exists($user->avatar_path), 404);
 
-        $mime = Storage::disk('local')->mimeType($user->avatar_path);
+        $bytes = app(DataCipher::class)->decryptFile((string) Storage::disk('local')->get($user->avatar_path));
+        $mime = (new finfo(FILEINFO_MIME_TYPE))->buffer($bytes);
         abort_unless(in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true), 404);
 
-        return Storage::disk('local')->response($user->avatar_path, null, [
+        return response($bytes, 200, [
             'Content-Type' => $mime,
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, max-age=86400',

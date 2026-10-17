@@ -20,7 +20,7 @@ class Conversation extends Model
 
     protected function casts(): array
     {
-        return ['last_message_at' => 'datetime'];
+        return ['last_message_at' => 'datetime', 'name' => 'encrypted'];
     }
 
     public function participants(): BelongsToMany

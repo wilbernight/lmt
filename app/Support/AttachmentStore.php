@@ -6,10 +6,10 @@ use App\Models\Attachment;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Workspace;
+use finfo;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use finfo;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -19,6 +19,8 @@ use Illuminate\Validation\ValidationException;
  */
 class AttachmentStore
 {
+    public function __construct(private DataCipher $cipher) {}
+
     public const MAX_KB = 20 * 1024;
 
     /** Extension => accepted MIME types, as detected from the file content. */
@@ -57,13 +59,12 @@ class AttachmentStore
             throw ValidationException::withMessages(['file' => 'فضای ذخیره‌سازی میزکار پر شده است.']);
         }
 
-        $path = $file->storeAs(
-            'attachments/'.$workspace->id.'/'.now()->format('Y/m'),
-            Str::random(40).'.bin',
-            'local'
-        );
+        // The file is encrypted (AES-256-GCM) before it ever touches the disk.
+        $path = 'attachments/'.$workspace->id.'/'.now()->format('Y/m').'/'.Str::random(40).'.bin';
+        $sealed = $this->cipher->encryptFile((string) file_get_contents($file->getRealPath()));
+        Storage::disk('local')->put($path, $sealed);
 
-        return DB::transaction(function () use ($file, $workspace, $user, $path, $mime, $size) {
+        return DB::transaction(function () use ($file, $workspace, $user, $path, $mime, $size, $sealed) {
             $attachment = new Attachment(['original_name' => $this->cleanName($file->getClientOriginalName())]);
             $attachment->workspace_id = $workspace->id;
             $attachment->user_id = $user->id;
@@ -71,13 +72,20 @@ class AttachmentStore
             $attachment->path = $path;
             $attachment->mime = $mime;
             $attachment->size = $size;
-            $attachment->sha256 = hash_file('sha256', Storage::disk('local')->path($path));
+            // Integrity of the stored (encrypted) bytes; says nothing about the content.
+            $attachment->sha256 = hash('sha256', $sealed);
             $attachment->save();
 
             $workspace->increment('storage_used', $size);
 
             return $attachment;
         });
+    }
+
+    /** The original bytes of a stored file. */
+    public function contents(Attachment $attachment): string
+    {
+        return $this->cipher->decryptFile((string) Storage::disk($attachment->disk)->get($attachment->path));
     }
 
     public function delete(Attachment $attachment): void

@@ -130,10 +130,13 @@ class TimeController extends Controller
         $byMember = $base()->selectRaw("user_id, SUM({$seconds}) as total")->groupBy('user_id')->orderByDesc('total')->get();
         $users = User::whereIn('id', $byMember->pluck('user_id'))->get()->keyBy('id');
 
-        $byTask = $base()->join('tasks', 'tasks.id', '=', 'time_entries.task_id')
-            ->selectRaw("time_entries.task_id, tasks.title, tasks.estimate_minutes, SUM(CASE WHEN time_entries.ended_at IS NULL THEN LEAST(TIMESTAMPDIFF(SECOND, time_entries.started_at, UTC_TIMESTAMP()), ".TimeEntry::MAX_SECONDS.') ELSE time_entries.seconds END) as total')
-            ->groupBy('time_entries.task_id', 'tasks.title', 'tasks.estimate_minutes')
-            ->orderByDesc('total')->limit(50)->get();
+        $totals = $base()->selectRaw("task_id, SUM({$seconds}) as total")->groupBy('task_id')->orderByDesc('total')->limit(50)->get();
+        // Titles are encrypted at rest, so they come from the model (decrypted), not from the SQL.
+        $tasks = Task::whereIn('id', $totals->pluck('task_id'))->get(['id', 'title', 'estimate_minutes'])->keyBy('id');
+        $byTask = $totals->filter(fn ($r) => isset($tasks[$r->task_id]))->map(fn ($r) => (object) [
+            'task_id' => $r->task_id, 'title' => $tasks[$r->task_id]->title,
+            'estimate_minutes' => $tasks[$r->task_id]->estimate_minutes, 'total' => $r->total,
+        ])->values();
 
         $since = CarbonImmutable::now()->subDays(29)->startOfDay();
         $daily = TimeEntry::where('project_id', $project->id)->where('started_at', '>=', $since)

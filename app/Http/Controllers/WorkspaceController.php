@@ -57,8 +57,8 @@ class WorkspaceController extends Controller
                     'id' => $i->id, 'email' => $i->email, 'role' => $i->role,
                     'inviter' => $i->inviter->name, 'expires_at' => $i->expires_at->toIso8601String(),
                 ]),
-            'labels' => $workspace->labels()->orderBy('scope')->orderBy('name')->get(['id', 'scope', 'name', 'color']),
-            'categories' => $workspace->categories()->withCount('tasks')->orderBy('name')->get(['id', 'name', 'color']),
+            'labels' => $workspace->labels()->get(['id', 'scope', 'name', 'color'])->sortBy([['scope', 'asc'], ['name', 'asc']])->values(),
+            'categories' => $workspace->categories()->withCount('tasks')->get(['id', 'name', 'color'])->sortBy('name')->values(),
             'owner_id' => $workspace->owner_id,
         ]);
     }

@@ -13,6 +13,11 @@ class TaskCategory extends Model
 
     protected $fillable = ['name', 'color'];
 
+    protected function casts(): array
+    {
+        return ['name' => 'encrypted'];
+    }
+
     protected $hidden = ['workspace_id', 'created_at', 'updated_at'];
 
     public function tasks(): HasMany

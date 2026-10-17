@@ -20,7 +20,7 @@ class TaxonomyController extends Controller
 
         $data = $request->validate([
             'scope' => ['required', Rule::in(Label::SCOPES)],
-            'name' => ['required', 'string', 'max:40', Rule::unique('labels')->where('workspace_id', $workspace->id)->where('scope', $request->input('scope'))],
+            'name' => ['required', 'string', 'max:40', $this->uniqueName($workspace->labels()->where('scope', $request->input('scope')))],
             'color' => ['required', Rule::in(self::COLORS)],
         ]);
 
@@ -36,7 +36,7 @@ class TaxonomyController extends Controller
         $this->authorize('update', $workspace);
 
         $label->update($request->validate([
-            'name' => ['required', 'string', 'max:40', Rule::unique('labels')->where('workspace_id', $workspace->id)->where('scope', $label->scope)->ignore($label->id)],
+            'name' => ['required', 'string', 'max:40', $this->uniqueName($workspace->labels()->where('scope', $label->scope)->whereKeyNot($label->id))],
             'color' => ['required', Rule::in(self::COLORS)],
         ]));
 
@@ -57,7 +57,7 @@ class TaxonomyController extends Controller
         $this->authorize('contribute', $workspace);
 
         $data = $request->validate([
-            'name' => ['required', 'string', 'max:60', Rule::unique('task_categories')->where('workspace_id', $workspace->id)],
+            'name' => ['required', 'string', 'max:60', $this->uniqueName($workspace->categories())],
             'color' => ['required', Rule::in(self::COLORS)],
         ]);
 
@@ -73,7 +73,7 @@ class TaxonomyController extends Controller
         $this->authorize('update', $workspace);
 
         $category->update($request->validate([
-            'name' => ['required', 'string', 'max:60', Rule::unique('task_categories')->where('workspace_id', $workspace->id)->ignore($category->id)],
+            'name' => ['required', 'string', 'max:60', $this->uniqueName($workspace->categories()->whereKeyNot($category->id))],
             'color' => ['required', Rule::in(self::COLORS)],
         ]));
 
@@ -87,5 +87,17 @@ class TaxonomyController extends Controller
         $category->delete();
 
         return back()->with('success', 'دسته‌بندی حذف شد.');
+    }
+
+    /** A validation rule: no other record in the query has this name (names are encrypted, so compared decrypted). */
+    private function uniqueName($query): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($query) {
+            $wanted = $this->normaliseSearch((string) $value);
+
+            if ($query->get(['id', 'name'])->contains(fn ($m) => $this->normaliseSearch((string) $m->name) === $wanted)) {
+                $fail('این نام قبلاً استفاده شده است.');
+            }
+        };
     }
 }

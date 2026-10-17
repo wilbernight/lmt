@@ -438,7 +438,7 @@ class TaskController extends Controller
     private function applyFilters(Builder $query, Request $request): void
     {
         $query
-            ->when($request->filled('q'), fn ($q) => $q->where('title', 'like', $this->like($request->string('q'))))
+            ->when($request->filled('q'), fn ($q) => $q->whereIn('tasks.id', $this->matchingIds($q->clone(), ['title', 'description'], (string) $request->string('q'))))
             ->when($request->filled('category'), fn ($q) => $q->where('category_id', $request->string('category')))
             ->when($request->filled('project'), fn ($q) => $q->where('project_id', $request->string('project')))
             ->when($request->filled('label'), fn ($q) => $q->whereHas('labels', fn ($l) => $l->whereKey($request->string('label'))))
@@ -454,10 +454,11 @@ class TaskController extends Controller
         $user = $request->user();
 
         return [
-            'categories' => $workspace->categories()->orderBy('name')->get(['id', 'name', 'color']),
-            'labels' => $workspace->labels()->where('scope', 'task')->orderBy('name')->get(['id', 'name', 'color']),
+            // Names are encrypted at rest, so they are sorted after decryption.
+            'categories' => $workspace->categories()->get(['id', 'name', 'color'])->sortBy('name')->values(),
+            'labels' => $workspace->labels()->where('scope', 'task')->get(['id', 'name', 'color'])->sortBy('name')->values(),
             'projects' => Project::query()->inWorkspace($workspace)->visibleTo($user, $workspace)
-                ->whereNull('archived_at')->orderBy('name')->get(['id', 'name', 'color']),
+                ->whereNull('archived_at')->get(['id', 'name', 'color'])->sortBy('name')->values(),
             'canCreate' => $user->can('contribute', $workspace),
         ];
     }

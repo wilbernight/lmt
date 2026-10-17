@@ -8,8 +8,8 @@ import NavProgress from '@/Components/ui/NavProgress.vue';
 <template>
     <div class="grid min-h-dvh bg-bg lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <main class="flex flex-col px-5 py-8 sm:px-10">
-            <a href="/" class="flex items-center" aria-label="WilberNight"><BrandLogo size="lg" /></a>
             <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
+                <a href="/" class="mb-10 flex justify-center" aria-label="WilberNight"><BrandLogo size="lg" /></a>
                 <slot />
             </div>
             <p class="flex items-center justify-center gap-1.5 text-xs text-ink-3"><Lock class="size-3.5" /> ارتباط شما رمزنگاری‌شده و اطلاعات‌تان محافظت‌شده است.</p>
@@ -17,7 +17,6 @@ import NavProgress from '@/Components/ui/NavProgress.vue';
 
         <aside class="relative hidden overflow-hidden lg:block">
             <div class="absolute inset-0 gradient-accent" />
-            <div class="absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_20%_20%,white_0,transparent_35%),radial-gradient(circle_at_80%_70%,white_0,transparent_30%)]" />
             <div class="absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,.07)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.07)_1px,transparent_1px)] [background-size:44px_44px]" />
 
             <div class="relative flex h-full flex-col justify-center px-14 text-white xl:px-20">

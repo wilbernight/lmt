@@ -29,7 +29,10 @@ class Customer extends Model
 
     protected function casts(): array
     {
-        return ['deal_value' => 'integer'];
+        // Everything about a customer is encrypted at rest; only the stage stays readable for filtering.
+        return collect(['name', 'company', 'job_title', 'phone', 'mobile', 'email', 'website', 'city', 'address', 'notes', 'deal_value'])
+            ->mapWithKeys(fn ($column) => [$column => 'encrypted'])
+            ->all();
     }
 
     public function owner(): BelongsTo

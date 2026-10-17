@@ -14,5 +14,10 @@ class Label extends Model
 
     protected $fillable = ['name', 'color', 'scope'];
 
+    protected function casts(): array
+    {
+        return ['name' => 'encrypted'];
+    }
+
     protected $hidden = ['pivot', 'workspace_id', 'created_at', 'updated_at'];
 }

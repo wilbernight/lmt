@@ -19,7 +19,7 @@ class Note extends Model
 
     protected function casts(): array
     {
-        return ['items' => 'array', 'pinned' => 'boolean', 'archived_at' => 'datetime'];
+        return ['items' => 'encrypted:array', 'pinned' => 'boolean', 'archived_at' => 'datetime', 'title' => 'encrypted', 'body' => 'encrypted'];
     }
 
     public function user(): BelongsTo

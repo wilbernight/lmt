@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
-    Bell, Building2, ChartColumn, Clock, ChevronDown, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
+    ArrowRight, Bell, Building2, ChartColumn, ChevronDown, Clock, FileText, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
     Gauge, MessagesSquare, Monitor, Moon, Plus, Search, Settings, ShieldCheck, SlidersHorizontal, StickyNote, Sun, UserPlus, Users, X,
 } from '@lucide/vue';
 import Avatar from '@/Components/ui/Avatar.vue';
@@ -39,13 +39,19 @@ const adminNav = computed(() =>
               { label: 'کاربران', href: route('admin.users.index'), icon: Users, tone: 'rose', match: '/admin/users' },
               { label: 'میزکارها', href: route('admin.workspaces.index'), icon: Building2, tone: 'rose', match: '/admin/workspaces' },
               { label: 'تنظیمات سایت', href: route('admin.settings'), icon: SlidersHorizontal, tone: 'rose', match: '/admin/settings' },
+              { label: 'سربرگ و نشانی نامه‌ها', href: route('admin.settings') + '#letterhead', icon: FileText, tone: 'rose', match: '/admin/settings#letterhead' },
           ]
         : [],
 );
 
 const nav = computed(() => {
     const onAdmin = current.value.startsWith('/admin');
-    if (onAdmin || !ws.value) return adminNav.value.length ? [adminNav.value] : [];
+    if (onAdmin) {
+        // Way back from the admin panel to the user's own workspace.
+        const back = { label: 'بازگشت به پنل کاربری', href: route('dashboard'), icon: ArrowRight, tone: 'slate', match: '/__back' };
+        return [[back], adminNav.value];
+    }
+    if (!ws.value) return adminNav.value.length ? [adminNav.value] : [];
     const id = ws.value.id;
 
     const items = [

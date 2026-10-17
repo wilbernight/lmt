@@ -158,6 +158,27 @@ class AdminTest extends TestCase
         $this->actingAs($ws->owner)->get("/w/{$ws->id}")->assertStatus(423);
     }
 
+    public function test_admin_sets_a_job_title_that_appears_on_printed_letters(): void
+    {
+        $admin = $this->admin();
+        $ws = $this->workspace();
+        $member = $this->member($ws);
+
+        $this->actingAs($member)->withSession(['auth.password_confirmed_at' => time()])
+            ->put("/admin/users/{$member->id}/workspaces/{$ws->id}/job-title", ['job_title' => 'مدیرعامل'])->assertNotFound();
+
+        $this->asAdmin($admin)->put("/admin/users/{$member->id}/workspaces/{$ws->id}/job-title", ['job_title' => 'کارشناس پشتیبانی'])->assertRedirect();
+        $this->assertSame('کارشناس پشتیبانی', $ws->members()->whereKey($member->id)->first()->pivot->job_title);
+
+        // Not a member of this workspace: nothing to edit.
+        $other = $this->workspace();
+        $this->asAdmin($admin)->put("/admin/users/{$member->id}/workspaces/{$other->id}/job-title", ['job_title' => 'x'])->assertNotFound();
+
+        $this->actingAs($ws->owner)->post("/w/{$ws->id}/letters", ['subject' => 'تست', 'body' => 'متن', 'priority' => 'normal', 'to' => [$member->id]]);
+        $letter = $ws->letters()->firstOrFail();
+        $this->actingAs($member)->get("/w/{$ws->id}/letters/{$letter->id}/print")->assertOk()->assertSee('کارشناس پشتیبانی');
+    }
+
     public function test_registration_can_be_closed(): void
     {
         Setting::put(['registration_open' => false]);

@@ -34,9 +34,9 @@ const save = () => form.put(route('admin.settings.update'), { preserveScroll: tr
                 <input v-model.number="form.max_upload_mb" type="number" min="1" max="100" dir="ltr" class="field text-end" />
             </Field>
         </div>
-        <div class="border-t border-line pt-6">
+        <div id="letterhead" class="scroll-mt-24 border-t border-line pt-6">
             <h2 class="font-bold">سربرگ نامه‌ها</h2>
-            <p class="mt-1 text-xs text-ink-3">این اطلاعات بالای و پایین نامه‌های چاپی نمایش داده می‌شود.</p>
+            <p class="mt-1 text-xs text-ink-3">نام و شعار بالای نامه‌های چاپی، و نشانی، تلفن، ایمیل و وب‌سایت در پایین آن‌ها نمایش داده می‌شود.</p>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
                 <Field label="نام مجموعه" :error="form.errors.company_name"><input v-model="form.company_name" maxlength="80" class="field" /></Field>
                 <Field label="شعار / حوزه فعالیت" :error="form.errors.company_tagline"><input v-model="form.company_tagline" maxlength="120" class="field" /></Field>

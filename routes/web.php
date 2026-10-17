@@ -74,6 +74,7 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
         Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('users.update');
+        Route::put('/users/{user}/workspaces/{workspace}/job-title', [AdminUserController::class, 'jobTitle'])->name('users.job-title');
         Route::post('/users/{user}/suspend', [AdminUserController::class, 'suspend'])->name('users.suspend');
         Route::post('/users/{user}/unsuspend', [AdminUserController::class, 'unsuspend'])->name('users.unsuspend');
         Route::post('/users/{user}/logout', [AdminUserController::class, 'logout'])->name('users.logout');

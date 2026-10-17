@@ -58,7 +58,7 @@ class AdminUserController extends Controller
         return Inertia::render('Admin/UserShow', [
             'user' => $this->payload($user),
             'workspaces' => $user->workspaces()->withCount('members')->get()->map(fn (Workspace $w) => [
-                'id' => $w->id, 'name' => $w->name, 'color' => $w->color, 'role' => $w->pivot->role,
+                'id' => $w->id, 'name' => $w->name, 'color' => $w->color, 'role' => $w->pivot->role, 'job_title' => $w->pivot->job_title,
                 'members_count' => $w->members_count, 'storage_used' => $w->storage_used,
                 'storage_limit' => $w->storage_limit, 'locked' => $w->suspended_at !== null,
             ]),
@@ -111,6 +111,21 @@ class AdminUserController extends Controller
         AuditLog::record('admin.user_updated', $user, ['target' => $user->email] + $data);
 
         return back()->with('success', 'دسترسی‌ها و سهمیه کاربر ذخیره شد.');
+    }
+
+    /** Job title shown next to the person's name (letters, member lists), per workspace. */
+    public function jobTitle(Request $request, User $user, Workspace $workspace): RedirectResponse
+    {
+        $data = $request->validate(['job_title' => ['nullable', 'string', 'max:80']]);
+
+        abort_unless($user->belongsToWorkspace($workspace), 404);
+
+        $title = trim((string) ($data['job_title'] ?? '')) ?: null;
+        $workspace->members()->updateExistingPivot($user->id, ['job_title' => $title]);
+
+        AuditLog::record('admin.user_job_title', $user, ['target' => $user->email, 'workspace' => $workspace->name, 'job_title' => $title], $workspace->id);
+
+        return back()->with('success', 'سمت کاربر ذخیره شد.');
     }
 
     public function suspend(Request $request, User $user): RedirectResponse

@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import {
-    ArrowRight, BadgeCheck, Building2, Crown, HardDrive, KeyRound, Lock, LogOut, MailCheck, ShieldCheck, ShieldOff, Unlock, UserX,
+    ArrowRight, BadgeCheck, Briefcase, Building2, Crown, HardDrive, KeyRound, Lock, LogOut, MailCheck, ShieldCheck, ShieldOff, Unlock, UserX,
 } from '@lucide/vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
@@ -43,6 +43,10 @@ const editStorage = (w) => {
 };
 const saveStorage = () => storageForm.put(route('admin.workspaces.update', editing.value.id), { preserveScroll: true, onSuccess: () => (editing.value = null) });
 const lockWorkspace = (w) => router.post(route('admin.workspaces.lock', w.id), {}, { preserveScroll: true });
+const saveJobTitle = (w, value) => {
+    if ((value ?? '').trim() === (w.job_title ?? '')) return;
+    router.put(route('admin.users.job-title', [props.user.id, w.id]), { job_title: value }, { preserveScroll: true });
+};
 
 const toggles = [
     { key: 'is_admin', label: 'مدیر سایت', hint: 'دسترسی کامل به این پنل', icon: Crown },
@@ -128,6 +132,18 @@ const storagePercent = props.user.storage_allocated ? Math.round((props.user.sto
                 <p class="text-sm font-bold">{{ w.name }} <span v-if="w.locked" class="chip bg-danger-soft text-danger">غیرفعال</span></p>
                 <p class="text-xs text-ink-3">{{ { owner: 'مالک', admin: 'مدیر', member: 'عضو', guest: 'مهمان' }[w.role] }} · {{ faNum(w.members_count) }} عضو</p>
             </div>
+            <label class="flex w-56 items-center gap-2">
+                <Briefcase class="size-4 shrink-0 text-ink-3" />
+                <input
+                    :value="w.job_title"
+                    maxlength="80"
+                    class="field h-9 py-1 text-xs"
+                    placeholder="سمت / شغل (در نامه‌ها)"
+                    :aria-label="`سمت در ${w.name}`"
+                    @change="saveJobTitle(w, $event.target.value)"
+                    @keydown.enter="$event.target.blur()"
+                />
+            </label>
             <span class="num w-44 text-xs text-ink-2">{{ formatBytes(w.storage_used) }} / {{ formatBytes(w.storage_limit) }}</span>
             <template v-if="w.role === 'owner'">
                 <Button size="sm" variant="secondary" @click="editStorage(w)"><HardDrive class="size-3.5" /> تغییر فضا</Button>

@@ -95,7 +95,7 @@ const tabs = [
                 <div class="mb-1 flex items-center justify-between px-1">
                     <span
                         class="num flex size-7 items-center justify-center rounded-full text-xs font-bold"
-                        :class="[isSameDay(d, today) ? 'gradient-accent text-on-accent' : inMonth(d) ? (i % 7 === 6 ? 'text-danger' : 'text-ink') : 'text-ink-3/60']"
+                        :class="[isSameDay(d, today) ? 'bg-accent text-on-accent' : inMonth(d) ? (i % 7 === 6 ? 'text-danger' : 'text-ink') : 'text-ink-3/60']"
                     >
                         {{ faNum(toJalali(d).jd) }}
                     </span>

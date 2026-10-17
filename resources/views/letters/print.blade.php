@@ -35,7 +35,7 @@
             display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 10px;
             font-size: 13px; font-weight: 700; border: 1px solid rgba(255,255,255,.18); color: #fff; background: transparent; cursor: pointer; text-decoration: none;
         }
-        .toolbar .primary { background: linear-gradient(135deg, var(--brand), var(--brand-2)); border-color: transparent; box-shadow: 0 8px 20px -8px var(--brand); }
+        .toolbar .primary { background: var(--brand); border-color: transparent; }
 
         /* ---- A4 sheet ---- */
         .sheet {

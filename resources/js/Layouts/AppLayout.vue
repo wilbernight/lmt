@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
-    ArrowRight, Bell, Building2, ChartColumn, ChevronDown, Clock, FileText, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
+    ArrowRight, Bell, Building2, ChartColumn, ChevronDown, Clock, FileText, MessageSquareText, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
     Gauge, MessagesSquare, Monitor, Moon, Plus, Search, Settings, ShieldCheck, SlidersHorizontal, StickyNote, Sun, UserPlus, Users, X,
 } from '@lucide/vue';
 import Avatar from '@/Components/ui/Avatar.vue';
@@ -38,6 +38,7 @@ const adminNav = computed(() =>
               { label: 'پنل مدیریت سایت', href: route('admin.dashboard'), icon: Gauge, tone: 'rose', match: '/admin', exact: true },
               { label: 'کاربران', href: route('admin.users.index'), icon: Users, tone: 'rose', match: '/admin/users' },
               { label: 'میزکارها', href: route('admin.workspaces.index'), icon: Building2, tone: 'rose', match: '/admin/workspaces' },
+              { label: 'پیامک', href: route('admin.sms.index'), icon: MessageSquareText, tone: 'rose', match: '/admin/sms' },
               { label: 'تنظیمات سایت', href: route('admin.settings'), icon: SlidersHorizontal, tone: 'rose', match: '/admin/settings' },
               { label: 'سربرگ و نشانی نامه‌ها', href: route('admin.settings') + '#letterhead', icon: FileText, tone: 'rose', match: '/admin/settings#letterhead' },
           ]
@@ -257,7 +258,7 @@ const otherMembers = computed(() => (ws.value?.members ?? []).filter((m) => m.id
 
                     <TimerPill />
 
-                    <button v-if="ws && ws.role !== 'guest'" class="hidden h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl gradient-accent px-4 text-sm font-semibold text-on-accent shadow-[0_6px_16px_-6px_var(--accent)] hover:brightness-110 sm:flex" @click="openCreateTask()">
+                    <button v-if="ws && ws.role !== 'guest'" class="hidden h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl btn-solid px-4 text-sm font-semibold sm:flex" @click="openCreateTask()">
                         <Plus class="size-4" /> وظیفه جدید
                     </button>
 

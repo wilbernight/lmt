@@ -99,7 +99,7 @@ const label = computed(() => (model.value ? (props.time ? `${jDate(model.value)}
                         type="button"
                         class="num aspect-square rounded-lg text-xs font-medium transition-colors"
                         :class="[
-                            selected && isSameDay(d, selected) ? 'gradient-accent text-on-accent' : 'hover:bg-surface-3',
+                            selected && isSameDay(d, selected) ? 'bg-accent text-on-accent' : 'hover:bg-surface-3',
                             !inMonth(d) && 'text-ink-3/50',
                             isSameDay(d, today) && !(selected && isSameDay(d, selected)) && 'ring-1 ring-accent text-accent-ink',
                             d.getDay() === 5 && inMonth(d) && !(selected && isSameDay(d, selected)) && 'text-danger',

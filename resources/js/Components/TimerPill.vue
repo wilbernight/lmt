@@ -44,7 +44,7 @@ const open = () => {
                 <Square class="size-3.5" fill="currentColor" />
             </button>
             <button class="flex min-w-0 items-center gap-2 text-start" @click="open">
-                <span class="relative flex size-2"><span class="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" /><span class="relative size-2 rounded-full bg-success" /></span>
+                <span class="size-2 rounded-full bg-success" />
                 <span class="num text-sm font-black tabular-nums" dir="ltr">{{ formatDuration(elapsed, { short: true, withSeconds: true }) }}</span>
                 <span class="hidden max-w-40 truncate text-xs font-semibold xl:inline">{{ timer.task_title }}</span>
             </button>

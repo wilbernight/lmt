@@ -1,6 +1,6 @@
 <script setup>
-import { computed } from 'vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { computed, watch } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import {
     AlarmClock, ArrowLeft, CalendarCheck, CheckCheck, Crown, Eye, Flame, Mailbox, Plus, Sparkles, StickyNote, Trophy,
 } from '@lucide/vue';
@@ -9,7 +9,7 @@ import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
 import TaskRow from '@/Components/tasks/TaskRow.vue';
 import { faNum, greeting, jDate, relative } from '@/lib/format';
-import { openCreateTask } from '@/composables/useTaskModal';
+import { openCreateTask, taskModal } from '@/composables/useTaskModal';
 
 const props = defineProps({
     stats: Object,
@@ -23,6 +23,12 @@ const props = defineProps({
 });
 
 const page = usePage();
+
+// Ticking or editing a task anywhere on the page refreshes the cards and reports at once.
+watch(
+    () => taskModal.version,
+    () => router.reload({ only: ['stats', 'myTasks', 'following', 'overdue', 'busiest', 'counters'] }),
+);
 const ws = computed(() => page.props.workspace);
 const user = computed(() => page.props.auth.user);
 
@@ -43,7 +49,6 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
         <div class="min-w-0 space-y-6">
             <!-- Hero -->
             <section class="relative overflow-hidden rounded-3xl border border-line bg-surface p-6 shadow-card sm:p-8">
-                <div class="pointer-events-none absolute -top-24 end-0 size-72 rounded-full gradient-accent opacity-15 blur-3xl" />
                 <div class="relative flex flex-wrap items-end gap-4">
                     <div class="flex-1">
                         <p class="flex items-center gap-2 text-sm font-semibold text-accent-ink"><Sparkles class="size-4" /> {{ greeting() }}، {{ user.name.split(' ')[0] }}</p>
@@ -55,7 +60,7 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
                             <p class="text-xs text-ink-3">همکاران من</p>
                             <AvatarStack :users="ws.members" :max="6" size="sm" class="mt-1" />
                         </div>
-                        <button v-if="page.props.workspace.role !== 'guest'" class="flex h-11 items-center gap-2 rounded-xl gradient-accent px-5 text-sm font-semibold text-on-accent shadow-[0_8px_20px_-8px_var(--accent)] hover:brightness-110" @click="openCreateTask()">
+                        <button v-if="page.props.workspace.role !== 'guest'" class="flex h-11 items-center gap-2 rounded-xl btn-solid px-5 text-sm font-semibold" @click="openCreateTask()">
                             <Plus class="size-4" /> وظیفه جدید
                         </button>
                     </div>

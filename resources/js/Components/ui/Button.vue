@@ -16,11 +16,11 @@ const props = defineProps({
 const classes = computed(() => [
     'relative inline-flex select-none items-center justify-center gap-2 whitespace-nowrap font-semibold transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-55 active:scale-[0.98]',
     {
-        primary: 'gradient-accent text-on-accent shadow-[0_6px_16px_-6px_var(--accent)] hover:brightness-110',
+        primary: 'btn-solid',
         secondary: 'border border-line-strong bg-surface text-ink shadow-soft hover:bg-surface-2',
         ghost: 'text-ink-2 hover:bg-surface-3 hover:text-ink',
         soft: 'bg-accent-soft text-accent-ink hover:brightness-95 dark:hover:brightness-110',
-        danger: 'bg-danger text-white shadow-[0_6px_16px_-6px_var(--danger)] hover:brightness-110',
+        danger: 'btn-solid-danger',
         'danger-ghost': 'text-danger hover:bg-danger-soft',
     }[props.variant],
     {

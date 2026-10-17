@@ -23,5 +23,5 @@ const text = computed(
     <p class="num text-gradient text-7xl font-black">{{ faNum(status) }}</p>
     <h1 class="mt-4 text-2xl font-black">{{ text[0] }}</h1>
     <p class="mt-2 text-sm leading-7 text-ink-3">{{ text[1] }}</p>
-    <Link href="/" class="mt-8 inline-flex h-11 items-center rounded-xl gradient-accent px-6 text-sm font-semibold text-on-accent">بازگشت به داشبورد</Link>
+    <Link href="/" class="mt-8 inline-flex h-11 items-center rounded-xl btn-solid px-6 text-sm font-semibold">بازگشت به داشبورد</Link>
 </template>

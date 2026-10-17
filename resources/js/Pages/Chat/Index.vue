@@ -262,7 +262,7 @@ const startDirect = (ids) => {
                             <span v-if="active.type === 'group' && m.user?.id !== me.id && !grouped(m, i)" class="mb-1 px-1 text-[0.7rem] font-bold text-accent-ink">{{ m.user?.name }}</span>
                             <div
                                 class="relative rounded-2xl px-3.5 py-2 text-sm leading-7 shadow-soft"
-                                :class="m.deleted ? 'border border-dashed border-line bg-transparent italic text-ink-3' : m.user?.id === me.id ? 'gradient-accent rounded-ss-md text-on-accent' : 'rounded-se-md bg-surface text-ink'"
+                                :class="m.deleted ? 'border border-dashed border-line bg-transparent italic text-ink-3' : m.user?.id === me.id ? 'bg-accent rounded-ss-md text-on-accent' : 'rounded-se-md bg-surface text-ink'"
                             >
                                 <div v-if="m.reply_to" class="mb-1.5 rounded-lg border-s-2 px-2 py-1 text-xs" :class="m.user?.id === me.id ? 'border-white/60 bg-white/15' : 'border-accent bg-surface-3'">
                                     <span class="block font-bold">{{ m.reply_to.user }}</span>

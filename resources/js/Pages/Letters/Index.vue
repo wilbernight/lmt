@@ -86,7 +86,7 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
 
     <div v-if="letters.last_page > 1" class="mt-5 flex justify-center gap-1">
         <template v-for="link in letters.links" :key="link.label">
-            <Link v-if="link.url" :href="link.url" preserve-scroll class="num min-w-9 rounded-lg px-3 py-1.5 text-center text-sm" :class="link.active ? 'gradient-accent text-on-accent' : 'hover:bg-surface-3'">{{ faNum(link.label.replace(/&laquo;|&raquo;/g, '').trim()) }}</Link>
+            <Link v-if="link.url" :href="link.url" preserve-scroll class="num min-w-9 rounded-lg px-3 py-1.5 text-center text-sm" :class="link.active ? 'bg-accent text-on-accent' : 'hover:bg-surface-3'">{{ faNum(link.label.replace(/&laquo;|&raquo;/g, '').trim()) }}</Link>
         </template>
     </div>
 </template>

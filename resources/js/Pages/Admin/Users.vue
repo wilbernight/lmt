@@ -84,7 +84,7 @@ const percent = (u) => (u.storage_allocated ? Math.min(100, Math.round((u.storag
 
     <div v-if="users.last_page > 1" class="mt-5 flex justify-center gap-1">
         <template v-for="link in users.links" :key="link.label">
-            <Link v-if="link.url" :href="link.url" class="num min-w-9 rounded-lg px-3 py-1.5 text-center text-sm" :class="link.active ? 'gradient-accent text-on-accent' : 'hover:bg-surface-3'">{{ faNum(link.label.replace(/&laquo;|&raquo;/g, '').trim()) }}</Link>
+            <Link v-if="link.url" :href="link.url" class="num min-w-9 rounded-lg px-3 py-1.5 text-center text-sm" :class="link.active ? 'bg-accent text-on-accent' : 'hover:bg-surface-3'">{{ faNum(link.label.replace(/&laquo;|&raquo;/g, '').trim()) }}</Link>
         </template>
     </div>
 </template>

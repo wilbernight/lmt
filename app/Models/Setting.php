@@ -20,6 +20,13 @@ class Setting extends Model
         'company_phone' => '',
         'company_email' => '',
         'company_website' => 'wilbernight.net',
+        // SMS through the SIM800 modem on the LAN (shared with the WilberNight panel).
+        'sms_driver' => 'gsm',
+        'sms_host' => '192.168.77.248',
+        'sms_port' => 4444,
+        'sms_timeout' => 8,
+        'sms_country_code' => '98',
+        'sms_daily_limit' => 100,
     ];
 
     public const LETTERHEAD_KEYS = ['company_name', 'company_tagline', 'company_address', 'company_phone', 'company_email', 'company_website'];

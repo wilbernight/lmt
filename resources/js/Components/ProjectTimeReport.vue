@@ -59,7 +59,7 @@ const dayLabel = (d) => {
                 <div class="w-44"><label class="label">از تاریخ</label><DatePicker v-model="range.from" compact placeholder="ابتدای پروژه" /></div>
                 <div class="w-44"><label class="label">تا تاریخ</label><DatePicker v-model="range.to" compact placeholder="امروز" /></div>
                 <div v-if="data.running.length" class="flex flex-wrap items-center gap-2 rounded-xl border border-success/40 bg-success-soft px-3 py-2 text-xs text-success">
-                    <span class="relative flex size-2"><span class="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" /><span class="relative size-2 rounded-full bg-success" /></span>
+                    <span class="size-2 rounded-full bg-success" />
                     الان در حال کار:
                     <span v-for="r in data.running" :key="r.user.id" class="flex items-center gap-1 font-semibold"><Avatar :user="r.user" size="xs" :status="false" /> {{ r.user.name }} <span class="font-normal opacity-80">({{ r.task }} از {{ jTime(r.started_at) }})</span></span>
                 </div>

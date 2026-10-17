@@ -41,6 +41,6 @@ onBeforeUnmount(() => {
 
 <template>
     <div v-show="visible" class="pointer-events-none fixed inset-x-0 top-0 z-[70] h-0.5">
-        <div class="h-full gradient-accent shadow-[0_0_10px_var(--accent)] transition-[width] duration-200 ease-out" :style="{ width: `${width}%` }" />
+        <div class="h-full bg-accent transition-[width] duration-200 ease-out" :style="{ width: `${width}%` }" />
     </div>
 </template>

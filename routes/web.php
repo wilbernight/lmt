@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminSettingsController;
+use App\Http\Controllers\Admin\AdminSmsController;
 use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminWorkspaceController;
 use App\Http\Controllers\AttachmentController;
@@ -83,6 +84,10 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::get('/workspaces', [AdminWorkspaceController::class, 'index'])->name('workspaces.index');
         Route::put('/workspaces/{workspace}', [AdminWorkspaceController::class, 'update'])->name('workspaces.update');
         Route::post('/workspaces/{workspace}/lock', [AdminWorkspaceController::class, 'lock'])->name('workspaces.lock');
+        Route::get('/sms', [AdminSmsController::class, 'index'])->name('sms.index');
+        Route::put('/sms/settings', [AdminSmsController::class, 'updateSettings'])->name('sms.settings');
+        Route::post('/sms/test', [AdminSmsController::class, 'test'])->middleware('throttle:10,1')->name('sms.test');
+        Route::post('/sms/send', [AdminSmsController::class, 'send'])->middleware('throttle:10,1')->name('sms.send');
         Route::get('/settings', [AdminSettingsController::class, 'show'])->name('settings');
         Route::put('/settings', [AdminSettingsController::class, 'update'])->name('settings.update');
     });

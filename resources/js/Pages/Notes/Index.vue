@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
 import {
@@ -43,6 +43,25 @@ const addItem = (target) => {
     newItem.value = '';
 };
 
+const composer = ref(null);
+
+/** Open the composer from anywhere: the header button, the empty state or ?new=1. */
+const startNew = async (checklist = false) => {
+    if (props.view !== 'all') {
+        router.get(route('notes.index', [ws.id, { new: 1 }]));
+        return;
+    }
+    composerOpen.value = true;
+    draft.value.checklist = checklist;
+    await nextTick();
+    composer.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    composer.value?.querySelector('input')?.focus();
+};
+
+onMounted(() => {
+    if (new URLSearchParams(window.location.search).has('new')) startNew();
+});
+
 const create = () => {
     const d = draft.value;
     if (!d.title.trim() && !d.body.trim() && !d.items.length) {
@@ -70,9 +89,17 @@ const saveEditing = async () => {
     router.reload({ only: ['notes'] });
 };
 
+/** Small edits (pin, checklist tick) show at once and roll back if the server refuses. */
 const quick = async (n, fields) => {
-    await http.patch(route('notes.update', [ws.id, n.id]), fields);
-    router.reload({ only: ['notes'] });
+    const previous = Object.fromEntries(Object.keys(fields).map((k) => [k, n[k]]));
+    Object.assign(n, fields);
+
+    try {
+        const { data } = await http.patch(route('notes.update', [ws.id, n.id]), fields);
+        Object.assign(n, data);
+    } catch {
+        Object.assign(n, previous);
+    }
 };
 
 const toggleItem = (n, i) => {
@@ -98,6 +125,7 @@ const others = computed(() => props.notes.filter((n) => !n.pinned));
     <Head title="یادداشت‌های من" />
 
     <PageHeader title="یادداشت‌های من" subtitle="فقط خودتان آن‌ها را می‌بینید" :icon="StickyNote" tone="amber">
+        <Button @click="startNew()"><Plus class="size-4" /> یادداشت جدید</Button>
         <div class="relative">
             <Search class="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-ink-3" />
             <input v-model="q" class="field h-10 w-56 ps-9" placeholder="جستجو در یادداشت‌ها..." />
@@ -112,11 +140,16 @@ const others = computed(() => props.notes.filter((n) => !n.pinned));
 
     <!-- Composer -->
     <div v-if="view === 'all'" class="mx-auto mt-8 max-w-xl">
-        <div class="rounded-2xl border border-line shadow-card transition-shadow [background:var(--note)]" :class="`note-${draft.color}`">
-            <button v-if="!composerOpen" class="flex w-full items-center gap-3 px-5 py-4 text-start text-ink-3" @click="composerOpen = true">
-                <span class="flex-1">یادداشت خود را قرار دهید...</span>
-                <ListChecks class="size-5 hover:text-ink" @click.stop="composerOpen = true; draft.checklist = true" />
-            </button>
+        <div ref="composer" class="rounded-2xl border-2 shadow-card transition-all [background:var(--note)]" :class="[`note-${draft.color}`, composerOpen ? 'border-accent' : 'border-dashed border-line-strong hover:border-accent']">
+            <div v-if="!composerOpen" class="flex items-center gap-2 px-3 py-2">
+                <button type="button" class="flex flex-1 items-center gap-3 rounded-xl px-2 py-2.5 text-start text-ink-3 hover:text-ink" @click="startNew()">
+                    <Plus class="size-5 text-accent" />
+                    <span class="flex-1">یادداشت جدید بنویسید...</span>
+                </button>
+                <button type="button" class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-ink-3 hover:bg-surface-3 hover:text-ink" @click="startNew(true)">
+                    <ListChecks class="size-4" /> چک‌لیست
+                </button>
+            </div>
             <div v-else class="p-4">
                 <input v-model="draft.title" autofocus maxlength="150" class="w-full bg-transparent px-1 text-base font-bold outline-none placeholder:text-ink-3" placeholder="عنوان" />
                 <template v-if="!draft.checklist">
@@ -189,7 +222,9 @@ const others = computed(() => props.notes.filter((n) => !n.pinned));
         </div>
     </template>
 
-    <EmptyState v-if="!notes.length" :icon="view === 'trash' ? Trash2 : view === 'archived' ? Archive : StickyNote" :title="{ all: 'یادداشتی ندارید', archived: 'آرشیو خالی است', trash: 'سطل زباله خالی است' }[view]" class="mt-6" />
+    <EmptyState v-if="!notes.length" :icon="view === 'trash' ? Trash2 : view === 'archived' ? Archive : StickyNote" :title="{ all: 'یادداشتی ندارید', archived: 'آرشیو خالی است', trash: 'سطل زباله خالی است' }[view]" class="mt-6">
+        <Button v-if="view === 'all'" @click="startNew()"><Plus class="size-4" /> اولین یادداشت</Button>
+    </EmptyState>
 
     <!-- Edit modal -->
     <Modal :show="!!editing" size="md" @close="saveEditing">

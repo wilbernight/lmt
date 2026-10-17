@@ -16,7 +16,8 @@ export function startEcho() {
             wsPort: Number(import.meta.env.VITE_REVERB_PORT ?? 80),
             wssPort: Number(import.meta.env.VITE_REVERB_PORT ?? 443),
             forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
-            enabledTransports: ['ws', 'wss'],
+            // Only the configured protocol, which is also the only one the CSP allows.
+            enabledTransports: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https' ? ['wss'] : ['ws'],
             authEndpoint: '/broadcasting/auth',
             auth: { headers: { 'X-Requested-With': 'XMLHttpRequest' } },
         });

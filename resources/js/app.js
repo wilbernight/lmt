@@ -54,5 +54,9 @@ router.on('httpException', (event) => {
     if (status === 419) {
         event.preventDefault();
         toast.error('نشست منقضی شد؛ صفحه را تازه کنید.');
+    } else if (status === 409) {
+        // A new version of the app was deployed while this page was open.
+        event.preventDefault();
+        window.location.reload();
     }
 });

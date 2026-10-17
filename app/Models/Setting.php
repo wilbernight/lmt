@@ -13,7 +13,16 @@ class Setting extends Model
         'default_storage_limit' => 2 * 1024 * 1024 * 1024,
         'default_max_workspaces' => 5,
         'max_upload_mb' => 20,
+        // Letterhead printed on official letters.
+        'company_name' => 'WilberNight',
+        'company_tagline' => 'خدمات میزبانی وب و زیرساخت ابری',
+        'company_address' => '',
+        'company_phone' => '',
+        'company_email' => '',
+        'company_website' => 'wilbernight.net',
     ];
+
+    public const LETTERHEAD_KEYS = ['company_name', 'company_tagline', 'company_address', 'company_phone', 'company_email', 'company_website'];
 
     protected $primaryKey = 'key';
 

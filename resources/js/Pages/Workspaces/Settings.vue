@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { Building2, Crown, Layers, Mail, Plus, Tag, Trash2, UserPlus, Users, X } from '@lucide/vue';
 import PageHeader from '@/Components/ui/PageHeader.vue';
@@ -14,39 +14,40 @@ import { confirmDialog } from '@/composables/useConfirm';
 const props = defineProps({ colors: Array, roles: Array, invitations: Array, labels: Array, categories: Array, owner_id: Number });
 
 const page = usePage();
-const ws = page.props.workspace;
+// Reactive, so the member list reflects role changes as soon as the server answers.
+const ws = computed(() => page.props.workspace);
 const me = page.props.auth.user;
 const isOwner = props.owner_id === me.id;
 
-const general = useForm({ name: ws.name, color: ws.color });
-const saveGeneral = () => general.put(route('workspace.update', ws.id), { preserveScroll: true });
+const general = useForm({ name: ws.value.name, color: ws.value.color });
+const saveGeneral = () => general.put(route('workspace.update', ws.value.id), { preserveScroll: true });
 
 const invite = useForm({ email: '', role: 'member' });
-const sendInvite = () => invite.post(route('invitations.store', ws.id), { preserveScroll: true, onSuccess: () => invite.reset('email') });
+const sendInvite = () => invite.post(route('invitations.store', ws.value.id), { preserveScroll: true, onSuccess: () => invite.reset('email') });
 
 const assignable = props.roles.filter((r) => r.value !== 'owner' && (isOwner || r.value !== 'admin'));
 
-const changeRole = (m, role) => router.put(route('members.update', [ws.id, m.id]), { role, job_title: m.job_title }, { preserveScroll: true });
-const setTitle = (m, job_title) => router.put(route('members.update', [ws.id, m.id]), { role: m.role, job_title }, { preserveScroll: true });
+const changeRole = (m, role) => router.put(route('members.update', [ws.value.id, m.id]), { role, job_title: m.job_title }, { preserveScroll: true });
+const setTitle = (m, job_title) => router.put(route('members.update', [ws.value.id, m.id]), { role: m.role, job_title }, { preserveScroll: true });
 const removeMember = async (m) => {
     if (await confirmDialog({ title: 'حذف عضو', text: `${m.name} از میزکار حذف شود؟ دسترسی او به همه بخش‌ها قطع می‌شود.`, confirmText: 'حذف عضو', danger: true })) {
-        router.delete(route('members.destroy', [ws.id, m.id]), { preserveScroll: true });
+        router.delete(route('members.destroy', [ws.value.id, m.id]), { preserveScroll: true });
     }
 };
 const leave = async () => {
-    if (await confirmDialog({ title: 'خروج از میزکار', text: 'دیگر به این میزکار دسترسی نخواهید داشت.', confirmText: 'خروج', danger: true })) router.delete(route('members.destroy', [ws.id, me.id]));
+    if (await confirmDialog({ title: 'خروج از میزکار', text: 'دیگر به این میزکار دسترسی نخواهید داشت.', confirmText: 'خروج', danger: true })) router.delete(route('members.destroy', [ws.value.id, me.id]));
 };
 
 const tagColors = ['slate', 'rose', 'orange', 'amber', 'lime', 'emerald', 'teal', 'sky', 'indigo', 'violet', 'pink'];
 const scopeLabels = { task: 'وظایف', letter: 'نامه‌ها', note: 'یادداشت‌ها', customer: 'مشتریان' };
 const labelForm = useForm({ scope: 'task', name: '', color: 'indigo' });
-const addLabel = () => labelForm.post(route('labels.store', ws.id), { preserveScroll: true, onSuccess: () => labelForm.reset('name') });
+const addLabel = () => labelForm.post(route('labels.store', ws.value.id), { preserveScroll: true, onSuccess: () => labelForm.reset('name') });
 const categoryForm = useForm({ name: '', color: 'teal' });
-const addCategory = () => categoryForm.post(route('categories.store', ws.id), { preserveScroll: true, onSuccess: () => categoryForm.reset('name') });
+const addCategory = () => categoryForm.post(route('categories.store', ws.value.id), { preserveScroll: true, onSuccess: () => categoryForm.reset('name') });
 
 const deleteModal = ref(false);
 const deleteForm = useForm({ password: '', confirm_name: '' });
-const destroy = () => deleteForm.delete(route('workspace.destroy', ws.id));
+const destroy = () => deleteForm.delete(route('workspace.destroy', ws.value.id));
 </script>
 
 <template>

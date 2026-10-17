@@ -27,7 +27,8 @@ const referForm = useForm({ to: [], note: '' });
 const sendRefer = () => referForm.post(route('letters.refer', [ws.id, props.letter.id]), { preserveScroll: true, onSuccess: () => { referring.value = false; referForm.reset(); } });
 
 const archive = () => router.post(route('letters.archive', [ws.id, props.letter.id]), {}, { preserveScroll: true });
-const printPage = () => window.print();
+// Opens the letterhead print view in a new tab and starts printing there.
+const printLetter = (id) => window.open(route('letters.print', [ws.id, id, { auto: 1 }]), '_blank', 'noopener');
 const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
 const priorityLabel = { normal: 'عادی', urgent: 'فوری', instant: 'آنی' };
 const typeLabel = { to: 'گیرنده', cc: 'رونوشت', referral: 'ارجاع' };
@@ -40,7 +41,7 @@ const typeLabel = { to: 'گیرنده', cc: 'رونوشت', referral: 'ارجا�
         <div class="mb-6 flex flex-wrap items-center gap-3 print:hidden">
             <Link :href="route('letters.index', ws.id)" class="rounded-xl p-2 text-ink-3 hover:bg-surface-3" aria-label="بازگشت"><ArrowRight class="size-5" /></Link>
             <h1 class="min-w-0 flex-1 truncate text-xl font-black">{{ letter.subject }}</h1>
-            <Button variant="secondary" size="icon" aria-label="چاپ" @click="printPage"><Printer class="size-4" /></Button>
+            <Button variant="secondary" @click="printLetter(letter.id)"><Printer class="size-4" /> چاپ با سربرگ</Button>
             <Button variant="secondary" @click="archive"><component :is="archived ? ArchiveRestore : Archive" class="size-4" /> {{ archived ? 'خروج از بایگانی' : 'بایگانی' }}</Button>
             <Button v-if="can.refer" variant="soft" @click="referring = true"><Share2 class="size-4" /> ارجاع / پاراف</Button>
             <Button v-if="can.reply" @click="replying = true"><Reply class="size-4" /> پاسخ</Button>
@@ -55,6 +56,7 @@ const typeLabel = { to: 'گیرنده', cc: 'رونوشت', referral: 'ارجا�
                         <p class="text-xs text-ink-3">{{ jDateTime(l.created_at) }}</p>
                     </div>
                     <span class="num chip bg-surface-3 text-ink-2">شماره {{ faNum(l.number) }}</span>
+                    <button class="rounded-lg p-1.5 text-ink-3 hover:bg-surface-3 hover:text-ink print:hidden" :aria-label="`چاپ نامه ${faNum(l.number)}`" @click="printLetter(l.id)"><Printer class="size-4" /></button>
                     <span class="chip tone-chip" :class="`tone-${priorityTone[l.priority]}`">{{ priorityLabel[l.priority] }}</span>
                     <span v-if="l.confidential" class="chip bg-warning-soft text-warning"><Lock class="size-3" /> محرمانه</span>
                 </header>

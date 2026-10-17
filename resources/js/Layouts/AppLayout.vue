@@ -148,7 +148,7 @@ const otherMembers = computed(() => (ws.value?.members ?? []).filter((m) => m.id
             class="fixed inset-y-0 start-0 z-40 flex w-[17rem] flex-col border-e border-line bg-surface transition-transform duration-300 lg:translate-x-0"
             :class="drawer ? 'translate-x-0 shadow-pop' : 'translate-x-full'"
         >
-            <div class="flex h-16 shrink-0 items-center gap-3 px-5">
+            <div class="flex h-[4.5rem] shrink-0 items-center gap-3 px-5">
                 <Link :href="route('dashboard')" class="flex items-center" aria-label="WilberNight"><BrandLogo /></Link>
                 <button class="ms-auto rounded-lg p-1.5 text-ink-3 hover:bg-surface-3 lg:hidden" aria-label="بستن منو" @click="drawer = false"><X class="size-5" /></button>
             </div>
@@ -251,7 +251,7 @@ const otherMembers = computed(() => (ws.value?.members ?? []).filter((m) => m.id
 
                     <TimerPill />
 
-                    <button v-if="ws && ws.role !== 'guest'" class="hidden h-10 items-center gap-2 rounded-xl gradient-accent px-4 text-sm font-semibold text-on-accent shadow-[0_6px_16px_-6px_var(--accent)] hover:brightness-110 sm:flex" @click="openCreateTask()">
+                    <button v-if="ws && ws.role !== 'guest'" class="hidden h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-xl gradient-accent px-4 text-sm font-semibold text-on-accent shadow-[0_6px_16px_-6px_var(--accent)] hover:brightness-110 sm:flex" @click="openCreateTask()">
                         <Plus class="size-4" /> وظیفه جدید
                     </button>
 

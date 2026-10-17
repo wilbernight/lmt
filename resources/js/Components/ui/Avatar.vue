@@ -26,7 +26,7 @@ const sizeClass = computed(
 <template>
     <span class="relative inline-flex shrink-0" :title="user?.name">
         <span
-            :class="[sizeClass, ring && 'ring-2 ring-surface']"
+            :class="[sizeClass, ring && (size === 'xl' ? 'ring-4 ring-surface shadow-card' : 'ring-2 ring-surface')]"
             class="inline-flex items-center justify-center overflow-hidden rounded-full font-bold"
             :style="{ background: `oklch(0.9 0.06 ${hue})`, color: `oklch(0.4 0.14 ${hue})` }"
         >

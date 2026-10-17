@@ -168,6 +168,7 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::get('/letters/create', [LetterController::class, 'create'])->name('letters.create');
         Route::post('/letters', [LetterController::class, 'store'])->middleware('throttle:writes')->name('letters.store');
         Route::get('/letters/{letter}', [LetterController::class, 'show'])->name('letters.show');
+        Route::get('/letters/{letter}/print', [LetterController::class, 'print'])->middleware('throttle:30,1')->name('letters.print');
         Route::post('/letters/{letter}/reply', [LetterController::class, 'reply'])->middleware('throttle:writes')->name('letters.reply');
         Route::post('/letters/{letter}/refer', [LetterController::class, 'refer'])->middleware('throttle:writes')->name('letters.refer');
         Route::post('/letters/{letter}/archive', [LetterController::class, 'archive'])->name('letters.archive');

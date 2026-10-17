@@ -8,7 +8,7 @@ import NavProgress from '@/Components/ui/NavProgress.vue';
 <template>
     <div class="grid min-h-dvh bg-bg lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <main class="flex flex-col px-5 py-8 sm:px-10">
-            <a href="/" class="flex items-center" aria-label="WilberNight"><BrandLogo size="h-8" /></a>
+            <a href="/" class="flex items-center" aria-label="WilberNight"><BrandLogo size="lg" /></a>
             <div class="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center py-10">
                 <slot />
             </div>

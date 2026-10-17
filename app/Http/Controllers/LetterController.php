@@ -5,16 +5,24 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Letter;
 use App\Models\LetterReferral;
+use App\Models\Setting;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Notifications\ActivityNotification;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
+use Morilog\Jalali\CalendarUtils;
+use Morilog\Jalali\Jalalian;
 
 /** Internal correspondence (کارتابل نامه‌ها). */
 class LetterController extends Controller
@@ -136,6 +144,54 @@ class LetterController extends Controller
             ]),
             'archived' => $letter->sender_id === $user->id ? $letter->sender_archived_at !== null : $me?->pivot->archived_at !== null,
             'can' => ['refer' => $user->can('refer', $letter), 'reply' => $user->can('reply', $letter)],
+        ]);
+    }
+
+    /** Printable A4 letter on the company letterhead. */
+    public function print(Request $request, Workspace $workspace, Letter $letter): View
+    {
+        $this->authorize('view', $letter);
+
+        $letter->load(['sender', 'recipients', 'attachments', 'referrals.from', 'referrals.to']);
+
+        $people = $letter->recipients->pluck('id')->push($letter->sender_id)
+            ->merge($letter->referrals->pluck('from_user_id'))
+            ->merge($letter->referrals->pluck('to_user_id'));
+
+        $titles = $workspace->members()->whereIn('users.id', $people->unique())->get()->pluck('pivot.job_title', 'id');
+        $sent = $letter->created_at->setTimezone('Asia/Tehran');
+        $fa = fn ($value) => CalendarUtils::convertNumbers((string) $value);
+        $jalali = fn ($date) => Jalalian::fromDateTime($date->copy()->setTimezone('Asia/Tehran'));
+
+        // Tracking code derived from the app key, so it cannot be guessed from the letter number.
+        $code = strtoupper(substr(hash_hmac('sha256', $letter->id.'|'.$letter->number, config('app.key')), 0, 8));
+
+        $qr = (new Writer(new ImageRenderer(new RendererStyle(132, 1), new SvgImageBackEnd)))
+            ->writeString(route('letters.show', [$workspace, $letter]));
+
+        AuditLog::record('letter.printed', $letter, ['number' => $letter->number]);
+
+        return view('letters.print', [
+            'letter' => $letter,
+            'company' => collect(Setting::LETTERHEAD_KEYS)->mapWithKeys(fn ($k) => [str_replace('company_', '', $k) => trim((string) Setting::get($k))]),
+            'number' => $fa($letter->number),
+            'date' => $fa($jalali($letter->created_at)->format('%d %B %Y')),
+            'dateNumeric' => $fa($jalali($letter->created_at)->format('Y/m/d')),
+            'weekday' => $jalali($letter->created_at)->format('%A'),
+            'time' => $fa($sent->format('H:i')),
+            'to' => $letter->recipients->where('pivot.type', 'to')->values(),
+            'cc' => $letter->recipients->where('pivot.type', 'cc')->values(),
+            'titles' => $titles,
+            'referrals' => $letter->referrals->sortBy('created_at')->values()->map(fn ($r) => [
+                'from' => $r->from->name, 'to' => $r->to->name, 'note' => $r->note,
+                'date' => $fa($jalali($r->created_at)->format('Y/m/d - H:i')),
+            ]),
+            'priority' => ['urgent' => 'فوری', 'instant' => 'آنی'][$letter->priority] ?? null,
+            'code' => $fa(substr($code, 0, 4)).'-'.$fa(substr($code, 4)),
+            'qr' => preg_replace('/^<\?xml[^>]*>\s*/', '', $qr),
+            'printedBy' => $request->user()->name,
+            'printedAt' => $fa($jalali(now())->format('Y/m/d - H:i')),
+            'fa' => $fa,
         ]);
     }
 

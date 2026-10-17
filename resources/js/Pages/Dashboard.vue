@@ -134,7 +134,7 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
             <div class="card overflow-hidden">
                 <div class="h-20 gradient-accent opacity-90" />
                 <div class="-mt-10 px-5 pb-5 text-center">
-                    <Avatar :user="user" size="xl" class="mx-auto ring-4 ring-surface" :status="false" />
+                    <Avatar :user="user" size="xl" ring class="mx-auto" :status="false" />
                     <p class="mt-3 font-bold">{{ user.name }}</p>
                     <p class="text-xs text-ink-3">{{ ws.role_label }}</p>
                     <p class="mt-3 inline-flex rounded-full bg-surface-3 px-3 py-1 text-xs font-semibold text-ink-2">{{ greeting() }}! {{ jDate(new Date(), { weekday: true, year: false }) }}</p>

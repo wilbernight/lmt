@@ -21,6 +21,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SmsTwoFactorController;
 use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaxonomyController;
@@ -34,6 +35,12 @@ Route::get('/invitations/{token}', [InvitationController::class, 'show'])
     ->middleware('throttle:30,1')
     ->where('token', '[A-Za-z0-9]{64}')
     ->name('invitations.show');
+
+// Second login step by SMS (after the password; the session holds who is logging in).
+Route::middleware(['guest'])->group(function () {
+    Route::post('/two-factor-challenge/sms', [SmsTwoFactorController::class, 'verifyLogin'])->middleware('throttle:two-factor')->name('two-factor.sms');
+    Route::post('/two-factor-challenge/sms/resend', [SmsTwoFactorController::class, 'resendLogin'])->middleware('throttle:4,1')->name('two-factor.sms.resend');
+});
 
 Route::middleware(['auth', 'throttle:app'])->group(function () {
     // Available before the email address is verified.
@@ -54,6 +61,13 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
     // Account
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/security', [SettingsController::class, 'security'])->middleware('password.confirm')->name('security');
+        Route::middleware('password.confirm')->prefix('two-factor')->name('two-factor.')->group(function () {
+            Route::post('/sms/code', [SmsTwoFactorController::class, 'sendSetupCode'])->middleware('throttle:6,10')->name('sms.code');
+            Route::post('/sms', [SmsTwoFactorController::class, 'enable'])->middleware('throttle:10,1')->name('sms.enable');
+            Route::delete('/sms', [SmsTwoFactorController::class, 'disable'])->name('sms.disable');
+            Route::get('/recovery-codes', [SmsTwoFactorController::class, 'recoveryCodes'])->name('recovery-codes');
+            Route::post('/recovery-codes', [SmsTwoFactorController::class, 'regenerateRecoveryCodes'])->middleware('throttle:6,1')->name('recovery-codes.regenerate');
+        });
         Route::post('/avatar', [SettingsController::class, 'avatar'])->middleware('throttle:uploads')->name('avatar');
         Route::delete('/avatar', [SettingsController::class, 'removeAvatar'])->name('avatar.destroy');
         Route::delete('/sessions', [SettingsController::class, 'logoutOtherSessions'])->middleware('throttle:6,1')->name('sessions.destroy');

@@ -37,7 +37,7 @@ class HandleInertiaRequests extends Middleware
                     'email' => $user->email,
                     'phone' => $user->phone,
                     'theme' => $user->theme,
-                    'two_factor' => $user->hasTwoFactorEnabled(),
+                    'two_factor' => $user->hasSecondFactor(),
                     'verified' => $user->hasVerifiedEmail(),
                     'is_admin' => $user->is_admin,
                 ],

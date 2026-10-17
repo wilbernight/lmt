@@ -3,12 +3,15 @@
 namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
+use App\Actions\Fortify\RedirectIfTwoFactorRequired;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Models\AuditLog;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\Sms\SmsCode;
+use App\Services\Sms\SmsSender;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -17,7 +20,6 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
-use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Contracts\TwoFactorConfirmedResponse;
@@ -46,7 +48,10 @@ class FortifyServiceProvider extends ServiceProvider
         {
             public function toResponse($request)
             {
-                AuditLog::record('account.2fa_enabled');
+                AuditLog::record('account.2fa_enabled', properties: ['method' => 'app']);
+
+                // One second factor at a time: switching to the app turns SMS codes off.
+                $request->user()->forceFill(['sms_two_factor_at' => null])->save();
 
                 return back()->with('success', 'ورود دومرحله‌ای فعال شد.');
             }
@@ -77,7 +82,7 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-        Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
+        Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorRequired::class);
 
         Fortify::loginView(fn () => Inertia::render('Auth/Login', ['status' => session('status')]));
         Fortify::registerView(fn () => Inertia::render('Auth/Register', ['open' => (bool) Setting::get('registration_open')]));
@@ -87,7 +92,16 @@ class FortifyServiceProvider extends ServiceProvider
             'token' => $request->route('token'),
         ]));
         Fortify::verifyEmailView(fn () => Inertia::render('Auth/VerifyEmail', ['status' => session('status')]));
-        Fortify::twoFactorChallengeView(fn () => Inertia::render('Auth/TwoFactorChallenge'));
+        Fortify::twoFactorChallengeView(function (Request $request) {
+            $sms = (bool) $request->session()->get('login.sms');
+            $user = $sms ? User::find($request->session()->get('login.id')) : null;
+
+            return Inertia::render('Auth/TwoFactorChallenge', [
+                'method' => $sms ? 'sms' : 'totp',
+                'phone' => $user?->phone ? app(SmsSender::class)->mask($user->phone) : null,
+                'resendIn' => $user ? app(SmsCode::class)->secondsUntilResend($user, 'login') : 0,
+            ]);
+        });
         Fortify::confirmPasswordView(fn () => Inertia::render('Auth/ConfirmPassword'));
 
         Fortify::authenticateUsing(function (Request $request) {

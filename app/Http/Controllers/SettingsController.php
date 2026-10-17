@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Sms\SmsSender;
 use App\Support\DataCipher;
 use finfo;
 use Illuminate\Http\RedirectResponse;
@@ -44,6 +45,13 @@ class SettingsController extends Controller
             'twoFactor' => [
                 'enabled' => $user->hasTwoFactorEnabled(),
                 'pending' => $user->two_factor_secret !== null && $user->two_factor_confirmed_at === null,
+            ],
+            'smsTwoFactor' => [
+                'enabled' => $user->usesSmsTwoFactor(),
+                'phone' => $user->phone ? app(SmsSender::class)->mask($user->phone) : null,
+                'rawPhone' => $user->usesSmsTwoFactor() ? null : $user->phone,
+                'pendingPhone' => $request->session()->has('sms2fa.phone') ? app(SmsSender::class)->mask($request->session()->get('sms2fa.phone')) : null,
+                'live' => app(SmsSender::class)->isLive(),
             ],
             'activity' => AuditLog::where('user_id', $user->id)
                 ->where('action', 'like', 'auth.%')

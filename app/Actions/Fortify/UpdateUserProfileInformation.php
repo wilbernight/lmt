@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\UpdatesUserProfileInformation;
 
 class UpdateUserProfileInformation implements UpdatesUserProfileInformation
@@ -21,6 +22,13 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
             'phone' => ['nullable', 'string', 'regex:/^\+?[0-9۰-۹\s\-]{7,20}$/u'],
             'theme' => ['nullable', Rule::in(['system', 'light', 'dark'])],
         ])->validateWithBag('updateProfileInformation');
+
+        $phoneChanged = trim((string) ($input['phone'] ?? '')) !== trim((string) $user->phone);
+
+        if ($phoneChanged && $user->usesSmsTwoFactor()) {
+            throw ValidationException::withMessages(['phone' => 'این شماره برای ورود دومرحله‌ای استفاده می‌شود؛ برای تغییر آن، ابتدا ورود با پیامک را در «امنیت و ورود» غیرفعال کنید.'])
+                ->errorBag('updateProfileInformation');
+        }
 
         $emailChanged = $input['email'] !== $user->email;
 

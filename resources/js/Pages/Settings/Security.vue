@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { Copy, KeyRound, LogOut, Monitor, ShieldCheck, ShieldOff, Smartphone, TriangleAlert } from '@lucide/vue';
+import { Copy, KeyRound, LogOut, MessageSquareText, Monitor, ShieldCheck, ShieldOff, Smartphone, TriangleAlert } from '@lucide/vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
 import Modal from '@/Components/ui/Modal.vue';
@@ -11,7 +11,7 @@ import { jDateTime, relative } from '@/lib/format';
 import { toast } from '@/composables/useToast';
 import { confirmDialog } from '@/composables/useConfirm';
 
-const props = defineProps({ sessions: Array, twoFactor: Object, activity: Array });
+const props = defineProps({ sessions: Array, twoFactor: Object, smsTwoFactor: Object, activity: Array });
 
 // Two-factor -----------------------------------------------------------
 const qr = ref(null);
@@ -54,13 +54,35 @@ function confirm2fa() {
 }
 
 async function showCodes() {
-    codes.value = (await http.get('/user/two-factor-recovery-codes')).data;
+    codes.value = (await http.get(route('settings.two-factor.recovery-codes'))).data;
 }
 
 async function regenerate() {
-    await http.post('/user/two-factor-recovery-codes');
-    await showCodes();
+    codes.value = (await http.post(route('settings.two-factor.recovery-codes.regenerate'))).data;
     toast.success('کدهای بازیابی جدید ساخته شد.');
+}
+
+// Two-factor by SMS -----------------------------------------------------
+const smsCodeSent = ref(!!props.smsTwoFactor.pendingPhone);
+const smsPhoneForm = useForm({ phone: props.smsTwoFactor.rawPhone ?? '' });
+const smsCodeForm = useForm({ code: '' });
+
+const sendSmsCode = () =>
+    smsPhoneForm.post(route('settings.two-factor.sms.code'), { preserveScroll: true, onSuccess: () => (smsCodeSent.value = true) });
+
+const enableSms = () =>
+    smsCodeForm.post(route('settings.two-factor.sms.enable'), {
+        preserveScroll: true,
+        onSuccess: async () => {
+            smsCodeSent.value = false;
+            smsCodeForm.reset();
+            await showCodes();
+        },
+    });
+
+async function disableSms() {
+    if (!(await confirmDialog({ title: 'غیرفعال کردن ورود با پیامک', text: 'امنیت حساب شما کاهش می‌یابد. ادامه می‌دهید؟', confirmText: 'غیرفعال کن', danger: true }))) return;
+    router.delete(route('settings.two-factor.sms.disable'), { preserveScroll: true, onSuccess: () => (codes.value = []) });
 }
 
 async function disable() {
@@ -82,7 +104,7 @@ const deleteAccount = () => deleteForm.delete(route('settings.account.destroy'),
 
 const actionLabel = {
     'auth.login': 'ورود موفق', 'auth.logout': 'خروج', 'auth.failed': 'تلاش ناموفق برای ورود', 'auth.lockout': 'قفل موقت به دلیل تلاش زیاد',
-    'auth.password_reset': 'بازیابی رمز', 'account.2fa_enabled': 'فعال‌سازی ورود دومرحله‌ای', 'account.2fa_disabled': 'غیرفعال‌سازی ورود دومرحله‌ای',
+    'auth.password_reset': 'بازیابی رمز', 'account.2fa_enabled': 'فعال‌سازی ورود دومرحله‌ای', 'account.2fa_disabled': 'غیرفعال‌سازی ورود دومرحله‌ای', 'auth.2fa_failed': 'کد دومرحله‌ای نادرست', 'account.recovery_codes_regenerated': 'ساخت کدهای بازیابی جدید',
     'account.sessions_revoked': 'خروج از سایر دستگاه‌ها', 'account.email_changed': 'تغییر ایمیل',
 };
 </script>
@@ -101,8 +123,8 @@ const actionLabel = {
                         <component :is="twoFactor.enabled ? ShieldCheck : ShieldOff" class="size-6" />
                     </span>
                     <div class="flex-1">
-                        <h2 class="text-lg font-bold">ورود دومرحله‌ای</h2>
-                        <p class="mt-1 text-sm leading-7 text-ink-3">با فعال کردن این گزینه، علاوه بر رمز عبور، کد ۶ رقمی برنامه احراز هویت (Google Authenticator، Microsoft Authenticator یا ۱Password) هم لازم است.</p>
+                        <h2 class="text-lg font-bold">ورود دومرحله‌ای با برنامه</h2>
+                        <p class="mt-1 text-sm leading-7 text-ink-3">با فعال کردن این گزینه، علاوه بر رمز عبور، کد ۶ رقمی برنامه احراز هویت (Google Authenticator، Microsoft Authenticator یا ۱Password) هم لازم است. امن‌ترین روش است.</p>
                     </div>
                     <span class="chip" :class="twoFactor.enabled ? 'bg-success-soft text-success' : 'bg-warning-soft text-warning'">{{ twoFactor.enabled ? 'فعال' : 'غیرفعال' }}</span>
                 </div>
@@ -122,22 +144,72 @@ const actionLabel = {
                     </div>
                 </div>
 
-                <div v-if="codes.length" class="mt-6 rounded-2xl border border-warning/40 bg-warning-soft p-5">
+
+                <div class="mt-6 flex flex-wrap gap-2">
+                    <Button v-if="!twoFactor.enabled && !confirming" :loading="busy" @click="enable"><ShieldCheck class="size-4" /> فعال‌سازی</Button>
+                    <p v-if="smsTwoFactor.enabled && !twoFactor.enabled && !confirming" class="self-center text-xs text-ink-3">با فعال کردن برنامه، ورود با پیامک خاموش می‌شود.</p>
+                    <template v-if="twoFactor.enabled">
+                        <Button variant="secondary" @click="showCodes"><KeyRound class="size-4" /> نمایش کدهای بازیابی</Button>
+                        <Button variant="secondary" @click="regenerate">ساخت کدهای جدید</Button>
+                        <Button variant="danger-ghost" @click="disable">غیرفعال کردن</Button>
+                    </template>
+                </div>
+            </section>
+
+            <!-- 2FA by SMS -->
+            <section class="card p-6">
+                <div class="flex items-start gap-4">
+                    <span class="flex size-12 shrink-0 items-center justify-center rounded-2xl" :class="smsTwoFactor.enabled ? 'bg-success-soft text-success' : 'bg-surface-3 text-ink-2'">
+                        <MessageSquareText class="size-6" />
+                    </span>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-bold">ورود دومرحله‌ای با پیامک</h2>
+                        <p class="mt-1 text-sm leading-7 text-ink-3">
+                            بعد از رمز عبور، یک کد ۶ رقمی یک‌بارمصرف به موبایل شما پیامک می‌شود (اعتبار ۳ دقیقه).
+                            <template v-if="smsTwoFactor.enabled"> شماره: <span dir="ltr" class="font-semibold text-ink">{{ smsTwoFactor.phone }}</span></template>
+                        </p>
+                    </div>
+                    <span class="chip" :class="smsTwoFactor.enabled ? 'bg-success-soft text-success' : 'bg-surface-3 text-ink-3'">{{ smsTwoFactor.enabled ? 'فعال' : 'غیرفعال' }}</span>
+                </div>
+
+                <p v-if="!smsTwoFactor.live" class="mt-4 flex items-center gap-2 rounded-xl bg-warning-soft px-4 py-2.5 text-xs text-warning">
+                    <TriangleAlert class="size-4 shrink-0" /> اتصال پیامک در پنل مدیریت روی حالت ارسال واقعی نیست؛ کد فقط در گزارش برنامه ثبت می‌شود.
+                </p>
+
+                <template v-if="smsTwoFactor.enabled">
+                    <div class="mt-6 flex flex-wrap gap-2">
+                        <Button variant="secondary" @click="showCodes"><KeyRound class="size-4" /> نمایش کدهای بازیابی</Button>
+                        <Button variant="secondary" @click="regenerate">ساخت کدهای جدید</Button>
+                        <Button variant="danger-ghost" @click="disableSms">غیرفعال کردن</Button>
+                    </div>
+                </template>
+
+                <p v-else-if="twoFactor.enabled" class="mt-4 text-xs text-ink-3">ورود با برنامه فعال است و از پیامک امن‌تر است. برای استفاده از پیامک، ابتدا آن را غیرفعال کنید.</p>
+
+                <div v-else class="mt-6 grid gap-4 rounded-2xl border border-line bg-surface-2 p-5 sm:grid-cols-2">
+                    <form class="flex items-end gap-2" @submit.prevent="sendSmsCode">
+                        <Field label="شماره موبایل" :error="smsPhoneForm.errors.phone" class="flex-1">
+                            <input v-model="smsPhoneForm.phone" inputmode="tel" autocomplete="tel" dir="ltr" placeholder="09121234567" class="field text-center" />
+                        </Field>
+                        <Button type="submit" variant="secondary" :loading="smsPhoneForm.processing">{{ smsCodeSent ? 'ارسال دوباره' : 'ارسال کد' }}</Button>
+                    </form>
+                    <form v-if="smsCodeSent" class="flex items-end gap-2" @submit.prevent="enableSms">
+                        <Field label="کد پیامک‌شده" :error="smsCodeForm.errors.code" class="flex-1">
+                            <input v-model="smsCodeForm.code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" dir="ltr" class="field text-center font-bold tracking-widest" />
+                        </Field>
+                        <Button type="submit" :loading="smsCodeForm.processing">تأیید و فعال‌سازی</Button>
+                    </form>
+                </div>
+            </section>
+
+            <section v-if="codes.length" class="card p-6">
+                <div class="rounded-2xl border border-warning/40 bg-warning-soft p-5">
                     <p class="flex items-center gap-2 text-sm font-bold text-warning"><TriangleAlert class="size-4" /> کدهای بازیابی را در جای امنی نگه دارید</p>
                     <p class="mt-1 text-xs text-ink-2">اگر به گوشی دسترسی نداشتید، با هر کدام یک بار می‌توانید وارد شوید.</p>
                     <div class="mt-3 grid grid-cols-2 gap-2 font-mono text-sm" dir="ltr">
                         <span v-for="c in codes" :key="c" class="rounded-lg bg-surface px-3 py-1.5 text-center">{{ c }}</span>
                     </div>
                     <Button variant="secondary" size="sm" class="mt-3" @click="copyCodes"><Copy class="size-4" /> کپی کدها</Button>
-                </div>
-
-                <div class="mt-6 flex flex-wrap gap-2">
-                    <Button v-if="!twoFactor.enabled && !confirming" :loading="busy" @click="enable"><ShieldCheck class="size-4" /> فعال‌سازی</Button>
-                    <template v-if="twoFactor.enabled">
-                        <Button variant="secondary" @click="showCodes"><KeyRound class="size-4" /> نمایش کدهای بازیابی</Button>
-                        <Button variant="secondary" @click="regenerate">ساخت کدهای جدید</Button>
-                        <Button variant="danger-ghost" @click="disable">غیرفعال کردن</Button>
-                    </template>
                 </div>
             </section>
 

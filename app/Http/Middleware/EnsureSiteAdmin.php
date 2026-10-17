@@ -17,7 +17,7 @@ class EnsureSiteAdmin
 
         abort_unless($user?->is_admin, 404);
 
-        if (config('daftar.admin_requires_2fa') && ! $user->hasTwoFactorEnabled()) {
+        if (config('daftar.admin_requires_2fa') && ! $user->hasSecondFactor()) {
             return redirect()->route('settings.security')
                 ->with('error', 'برای ورود به پنل مدیریت، ابتدا ورود دومرحله‌ای را فعال کنید.');
         }

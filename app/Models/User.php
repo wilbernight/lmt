@@ -51,6 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
+            'sms_two_factor_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'suspended_at' => 'datetime',
             'password' => 'hashed',
@@ -144,6 +145,18 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasTwoFactorEnabled(): bool
     {
         return ! is_null($this->two_factor_secret) && ! is_null($this->two_factor_confirmed_at);
+    }
+
+    /** Second login step by a code sent to the verified phone number. */
+    public function usesSmsTwoFactor(): bool
+    {
+        return $this->sms_two_factor_at !== null && filled($this->phone);
+    }
+
+    /** Either kind of second factor: authenticator app or SMS. */
+    public function hasSecondFactor(): bool
+    {
+        return $this->hasTwoFactorEnabled() || $this->usesSmsTwoFactor();
     }
 
     public function getAvatarUrlAttribute(): ?string

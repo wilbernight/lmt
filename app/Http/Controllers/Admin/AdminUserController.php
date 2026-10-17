@@ -160,7 +160,7 @@ class AdminUserController extends Controller
 
     public function resetTwoFactor(User $user): RedirectResponse
     {
-        $user->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null])->save();
+        $user->forceFill(['two_factor_secret' => null, 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null, 'sms_two_factor_at' => null])->save();
         AuditLog::record('admin.user_2fa_reset', $user, ['target' => $user->email]);
 
         return back()->with('success', 'ورود دومرحله‌ای کاربر بازنشانی شد.');
@@ -188,7 +188,7 @@ class AdminUserController extends Controller
             'email' => $u->email,
             'is_admin' => $u->is_admin,
             'verified' => $u->hasVerifiedEmail(),
-            'two_factor' => $u->hasTwoFactorEnabled(),
+            'two_factor' => $u->hasSecondFactor(),
             'suspended' => $u->isSuspended(),
             'suspended_reason' => $u->suspended_reason,
             'can_create_workspaces' => $u->can_create_workspaces,

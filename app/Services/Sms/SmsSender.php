@@ -50,13 +50,14 @@ class SmsSender
     }
 
     /** Send one message and record it. */
-    public function send(string $phone, string $text, ?int $sentBy = null, ?int $recipientId = null, ?string $batch = null): SmsMessage
+    /** $logText replaces the text in the history (e.g. a login code). */
+    public function send(string $phone, string $text, ?int $sentBy = null, ?int $recipientId = null, ?string $batch = null, ?string $logText = null): SmsMessage
     {
         $result = $this->deliver($phone, $text);
 
         $message = new SmsMessage([
             'phone' => $this->mask($phone),
-            'body' => mb_substr($text, 0, 1000),
+            'body' => mb_substr($logText ?? $text, 0, 1000),
             'status' => $result['status'],
             'error' => $result['error'],
             'duration_ms' => $result['ms'],

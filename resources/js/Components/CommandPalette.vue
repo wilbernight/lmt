@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import { useDebounceFn } from '@vueuse/core';
-import { CircleCheck, Contact, CornerDownLeft, FileText, FolderKanban, ListChecks, Mailbox, MessagesSquare, Plus, Search, StickyNote, User } from '@lucide/vue';
+import { CircleCheck, ClipboardList, Contact, CornerDownLeft, FileText, FolderKanban, ListChecks, Mailbox, MessagesSquare, Plus, Search, StickyNote, User } from '@lucide/vue';
 import Modal from './ui/Modal.vue';
 import Spinner from './ui/Spinner.vue';
 import Avatar from './ui/Avatar.vue';
@@ -18,8 +18,8 @@ const results = ref([]);
 const loading = ref(false);
 const index = ref(0);
 
-const icons = { task: ListChecks, project: FolderKanban, letter: Mailbox, note: StickyNote, customer: Contact, member: User };
-const groupNames = { task: 'وظایف', project: 'پروژه‌ها', letter: 'نامه‌ها', note: 'یادداشت‌ها', customer: 'مشتریان', member: 'همکاران' };
+const icons = { task: ListChecks, project: FolderKanban, letter: Mailbox, minute: ClipboardList, note: StickyNote, customer: Contact, member: User };
+const groupNames = { task: 'وظایف', project: 'پروژه‌ها', letter: 'نامه‌ها', minute: 'صورت‌جلسه‌ها', note: 'یادداشت‌ها', customer: 'مشتریان', member: 'همکاران' };
 
 const ws = computed(() => page.props.workspace);
 
@@ -27,6 +27,7 @@ const actions = computed(() => [
     { type: 'action', title: 'ایجاد وظیفه جدید', icon: Plus, run: () => openCreateTask(), hint: 'N' },
     { type: 'action', title: 'رفتن به وظایف من', icon: ListChecks, run: () => router.visit(route('tasks.index', ws.value.id)) },
     { type: 'action', title: 'نوشتن نامه', icon: FileText, run: () => router.visit(route('letters.create', ws.value.id)) },
+    { type: 'action', title: 'ثبت صورت‌جلسه', icon: ClipboardList, run: () => router.visit(route('minutes.create', ws.value.id)) },
     { type: 'action', title: 'گفتگوها', icon: MessagesSquare, run: () => router.visit(route('chat.index', ws.value.id)) },
     { type: 'action', title: 'پروژه‌ها', icon: FolderKanban, run: () => router.visit(route('projects.index', ws.value.id)) },
 ]);

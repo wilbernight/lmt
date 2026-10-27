@@ -37,6 +37,14 @@ class Letter extends Model
             ->withTimestamps();
     }
 
+    /** Recipients and copies without an account. */
+    public function people(): BelongsToMany
+    {
+        return $this->belongsToMany(Person::class, 'letter_recipient_people')
+            ->withPivot('type')
+            ->withTimestamps();
+    }
+
     public function referrals(): HasMany
     {
         return $this->hasMany(LetterReferral::class)->latest();

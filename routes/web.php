@@ -15,6 +15,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\LetterController;
 use App\Http\Controllers\MemberController;
+use App\Http\Controllers\MinuteController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NotificationController;
@@ -159,6 +160,7 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::delete('/tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
         Route::post('/tasks/{task}/complete', [TaskController::class, 'complete'])->name('tasks.complete');
         Route::post('/tasks/{task}/move', [TaskController::class, 'move'])->name('tasks.move');
+        Route::post('/tasks/reorder', [TaskController::class, 'reorder'])->middleware('throttle:writes')->name('tasks.reorder');
         Route::post('/tasks/{task}/watch', [TaskController::class, 'watch'])->name('tasks.watch');
         Route::post('/tasks/{task}/bookmark', [TaskController::class, 'bookmark'])->name('tasks.bookmark');
         Route::post('/tasks/{task}/checklist', [ChecklistController::class, 'store'])->name('checklist.store');
@@ -196,6 +198,19 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::post('/letters/{letter}/refer', [LetterController::class, 'refer'])->middleware('throttle:writes')->name('letters.refer');
         Route::post('/letters/{letter}/archive', [LetterController::class, 'archive'])->name('letters.archive');
         Route::put('/letters/{letter}/labels', [LetterController::class, 'labels'])->name('letters.labels');
+
+        // Meeting minutes (صورت‌جلسه)
+        Route::get('/minutes', [MinuteController::class, 'index'])->name('minutes.index');
+        Route::get('/minutes/create', [MinuteController::class, 'create'])->name('minutes.create');
+        Route::post('/minutes', [MinuteController::class, 'store'])->middleware('throttle:writes')->name('minutes.store');
+        Route::get('/minutes/{minute}', [MinuteController::class, 'show'])->name('minutes.show');
+        Route::get('/minutes/{minute}/edit', [MinuteController::class, 'edit'])->name('minutes.edit');
+        Route::put('/minutes/{minute}', [MinuteController::class, 'update'])->middleware('throttle:writes')->name('minutes.update');
+        Route::delete('/minutes/{minute}', [MinuteController::class, 'destroy'])->middleware('throttle:3,1')->name('minutes.destroy');
+        Route::post('/minutes/{minute}/finalize', [MinuteController::class, 'finalize'])->middleware('throttle:writes')->name('minutes.finalize');
+        Route::post('/minutes/{minute}/approve', [MinuteController::class, 'approve'])->middleware('throttle:writes')->name('minutes.approve');
+        Route::post('/minutes/{minute}/actions/{minuteAction}/to-task', [MinuteController::class, 'actionToTask'])->middleware('throttle:writes')->name('minutes.actions.task');
+        Route::get('/minutes/{minute}/print', [MinuteController::class, 'print'])->middleware('throttle:30,1')->name('minutes.print');
 
         // Notes
         Route::get('/notes', [NoteController::class, 'index'])->name('notes.index');

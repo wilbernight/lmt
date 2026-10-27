@@ -39,6 +39,11 @@ class Workspace extends Model
         return $this->hasMany(Project::class);
     }
 
+    public function minutes(): HasMany
+    {
+        return $this->hasMany(Minute::class);
+    }
+
     public function tasks(): HasMany
     {
         return $this->hasMany(Task::class);
@@ -82,6 +87,12 @@ class Workspace extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(Attachment::class);
+    }
+
+    /** Directory of colleagues without an account (see Person). */
+    public function people(): HasMany
+    {
+        return $this->hasMany(Person::class);
     }
 
     public function addMember(User $user, WorkspaceRole $role = WorkspaceRole::Member): void

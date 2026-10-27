@@ -48,7 +48,7 @@ class DashboardController extends Controller
             ->inWorkspace($workspace)
             ->open()
             ->where('creator_id', $user->id)
-            ->whereHas('assignees', fn ($q) => $q->where('users.id', '!=', $user->id))
+            // Delegated to someone else — by member, by name alone, or still unassigned.
             ->whereDoesntHave('assignees', fn ($q) => $q->whereKey($user->id))
             ->with(TaskResource::withCard())
             ->withCount(TaskResource::cardCounts())

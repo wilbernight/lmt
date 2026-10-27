@@ -210,14 +210,14 @@
                             <span class="k">به:</span>
                             <span class="v">
                                 @foreach ($to as $r)
-                                    {{ $r->name }}@if ($titles[$r->id] ?? null) <small>({{ $titles[$r->id] }})</small>@endif{{ ! $loop->last ? '، ' : '' }}
+                                    {{ $r['name'] }}@if ($r['title']) <small>({{ $r['title'] }})</small>@endif{{ ! $loop->last ? '، ' : '' }}
                                 @endforeach
                             </span>
                             @if ($cc->isNotEmpty())
                                 <span class="k">رونوشت:</span>
                                 <span class="v">
                                     @foreach ($cc as $r)
-                                        {{ $r->name }}@if ($titles[$r->id] ?? null) <small>({{ $titles[$r->id] }})</small>@endif{{ ! $loop->last ? '، ' : '' }}
+                                        {{ $r['name'] }}@if ($r['title']) <small>({{ $r['title'] }})</small>@endif{{ ! $loop->last ? '، ' : '' }}
                                     @endforeach
                                 </span>
                             @endif

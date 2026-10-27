@@ -11,6 +11,7 @@ import Avatar from '@/Components/ui/Avatar.vue';
 import Checkbox from '@/Components/ui/Checkbox.vue';
 import DatePicker from '@/Components/ui/DatePicker.vue';
 import MemberPicker from '@/Components/ui/MemberPicker.vue';
+import PeoplePicker from '@/Components/ui/PeoplePicker.vue';
 import LabelPicker from '@/Components/ui/LabelPicker.vue';
 import Dropdown from '@/Components/ui/Dropdown.vue';
 import MenuItem from '@/Components/ui/MenuItem.vue';
@@ -161,6 +162,19 @@ async function deleteComment(c) {
 }
 
 const mentionNames = computed(() => (ws.value?.members ?? []).filter((m) => report.value.mentions.includes(m.id)));
+
+// Assignees ----------------------------------------------------------
+// Current assignees as picker entries: members + colleagues without an account.
+const assigneeEntries = computed(() => [
+    ...(task.value?.assignees ?? []).map((a) => ({ user_id: a.id, name: a.name, external: false })),
+    ...(task.value?.people ?? []).map((p) => ({ person_id: p.id, name: p.name, external: true })),
+]);
+
+/** Split picker entries into member ids and free-typed external names. */
+const assigneePayload = (entries) => ({
+    assignees: entries.filter((e) => !e.external).map((e) => e.user_id),
+    people_names: entries.filter((e) => e.external).map((e) => e.name),
+});
 
 // Attachments --------------------------------------------------------
 const pendingFiles = ref([]);
@@ -413,9 +427,19 @@ const activityText = (a) =>
 
                 <div>
                     <p class="label flex items-center gap-1.5"><Users class="size-3.5" /> مسئولان</p>
-                    <MemberPicker v-if="can.update" :model-value="task.assignees.map((a) => a.id)" compact @update:model-value="patch({ assignees: $event })" />
+                    <PeoplePicker
+                        v-if="can.update"
+                        :model-value="assigneeEntries"
+                        compact
+                        placeholder="انتخاب یا نوشتن نام همکار"
+                        @update:model-value="patch(assigneePayload($event))"
+                    />
                     <div v-else class="flex flex-wrap gap-2">
                         <span v-for="a in task.assignees" :key="a.id" class="flex items-center gap-1.5 text-sm"><Avatar :user="a" size="xs" /> {{ a.name }}</span>
+                        <span v-for="p in task.people ?? []" :key="p.id" class="flex items-center gap-1.5 text-sm text-ink-2" :title="`${p.name} (بدون اکانت)`">
+                            <span class="flex size-6 items-center justify-center rounded-full border border-dashed border-line-strong bg-surface-2 text-[0.55rem] font-bold text-ink-2">{{ p.initials }}</span>
+                            {{ p.name }}
+                        </span>
                     </div>
                 </div>
 

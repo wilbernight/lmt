@@ -67,6 +67,10 @@ const typeLabel = { to: 'گیرنده', cc: 'رونوشت', referral: 'ارجا�
                             <span class="text-ink-3">{{ typeLabel[r.type] }}:</span> {{ r.name }}
                             <CheckCheck v-if="r.read_at" class="size-3.5 text-success" :title="`خوانده شد ${jDateTime(r.read_at)}`" />
                         </span>
+                        <span v-for="p in l.people ?? []" :key="p.id" class="flex items-center gap-1.5 rounded-full bg-surface-3 py-0.5 pe-2.5 ps-0.5" :title="`${p.name} (بدون اکانت)`">
+                            <span class="flex size-6 items-center justify-center rounded-full border border-dashed border-line-strong text-[0.55rem] font-bold text-ink-2">{{ p.initials }}</span>
+                            <span class="text-ink-3">{{ typeLabel[p.type] }}:</span> {{ p.name }}
+                        </span>
                     </div>
                     <h2 class="mb-3 text-lg font-bold">{{ l.subject }}</h2>
                     <p class="whitespace-pre-wrap break-words text-[0.95rem] leading-8 text-ink-2">{{ l.body }}</p>

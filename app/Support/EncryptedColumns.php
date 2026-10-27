@@ -43,6 +43,9 @@ class EncryptedColumns
         'sms_messages' => ['body' => 'string'],
         'sms_groups' => ['name' => 'string'],
         'users' => ['phone' => 'string'],
+        'people' => ['name' => 'string'],
+        'minutes' => ['subject' => 'string', 'body' => 'string', 'location' => 'string'],
+        'minute_actions' => ['title' => 'string'],
     ];
 
     /** Unique indexes that cannot work on randomised ciphertext; uniqueness is checked in PHP instead. */

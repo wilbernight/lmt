@@ -29,6 +29,14 @@ const priority = computed(() => PRIORITIES[props.task.priority]);
         <span v-if="task.comments_count" class="flex items-center gap-1"><MessageSquare class="size-3.5" /> {{ faNum(task.comments_count) }}</span>
         <span v-if="task.attachments_count" class="flex items-center gap-1"><Paperclip class="size-3.5" /> {{ faNum(task.attachments_count) }}</span>
         <span v-for="l in task.labels" :key="l.id" class="chip tone-chip" :class="`tone-${l.color}`">{{ l.name }}</span>
-        <AvatarStack v-if="task.assignees?.length" :users="task.assignees" :max="3" class="ms-auto" />
+        <div v-if="task.assignees?.length || task.people?.length" class="ms-auto flex items-center -space-x-1.5 space-x-reverse">
+            <AvatarStack v-if="task.assignees?.length" :users="task.assignees" :max="3" />
+            <span
+                v-for="p in task.people ?? []"
+                :key="p.id"
+                class="flex size-6 items-center justify-center rounded-full border border-dashed border-line-strong bg-surface-2 text-[0.55rem] font-bold text-ink-2 ring-2 ring-surface"
+                :title="`${p.name} (بدون اکانت)`"
+            >{{ p.initials }}</span>
+        </div>
     </div>
 </template>

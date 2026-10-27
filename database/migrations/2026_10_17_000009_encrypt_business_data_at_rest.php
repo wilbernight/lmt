@@ -17,7 +17,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Tables created by later migrations (people, minutes...) already ship
+        // with encryption-friendly columns, so they are simply skipped here.
         foreach (EncryptedColumns::DROPPED_UNIQUE as $table => $columns) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
             Schema::table($table, function (Blueprint $t) use ($columns) {
                 // The foreign key on the leading *_id column relied on this index; give it its own first.
                 if (str_ends_with($columns[0], '_id')) {
@@ -29,6 +35,10 @@ return new class extends Migration
         }
 
         foreach (EncryptedColumns::MAP as $table => $columns) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
             Schema::table($table, function (Blueprint $t) use ($columns) {
                 foreach (array_keys($columns) as $column) {
                     $t->mediumText($column)->nullable()->change();
@@ -39,6 +49,10 @@ return new class extends Migration
         $cipher = app(DataCipher::class);
 
         foreach (EncryptedColumns::MAP as $table => $columns) {
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
+
             DB::table($table)->orderBy('id')->chunkById(500, function ($rows) use ($table, $columns, $cipher) {
                 foreach ($rows as $row) {
                     $changes = [];

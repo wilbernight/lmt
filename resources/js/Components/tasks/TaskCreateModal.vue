@@ -5,7 +5,7 @@ import { AlignRight, ChevronDown, FolderKanban, Plus, Trash2 } from '@lucide/vue
 import Modal from '@/Components/ui/Modal.vue';
 import Button from '@/Components/ui/Button.vue';
 import DatePicker from '@/Components/ui/DatePicker.vue';
-import MemberPicker from '@/Components/ui/MemberPicker.vue';
+import PeoplePicker from '@/Components/ui/PeoplePicker.vue';
 import LabelPicker from '@/Components/ui/LabelPicker.vue';
 import FileUpload from '@/Components/ui/FileUpload.vue';
 import http from '@/lib/http';
@@ -31,7 +31,8 @@ const blank = () => ({
     priority: 1,
     due_at: null,
     starts_at: null,
-    assignees: [page.props.auth.user.id],
+    // Combined assignee entries: members and colleagues without an account (see PeoplePicker).
+    assignees: [{ user_id: page.props.auth.user.id, name: page.props.auth.user.name, external: false }],
     labels: [],
     checklist: [],
     attachments: [],
@@ -68,6 +69,12 @@ const addItem = () => {
     newItem.value = '';
 };
 
+/** Split picker entries into member ids and free-typed external names. */
+const assigneePayload = (entries) => ({
+    assignees: entries.filter((e) => !e.external).map((e) => e.user_id),
+    people_names: entries.filter((e) => e.external).map((e) => e.name),
+});
+
 async function submit() {
     if (!form.value.title.trim()) {
         errors.value = { title: 'عنوان وظیفه را بنویسید.' };
@@ -76,7 +83,7 @@ async function submit() {
     saving.value = true;
     errors.value = {};
     try {
-        await http.post(route('tasks.store', ws.value.id), form.value);
+        await http.post(route('tasks.store', ws.value.id), { ...form.value, ...assigneePayload(form.value.assignees) });
         toast.success('وظیفه ساخته شد.');
         taskModal.create = false;
         taskChanged();
@@ -112,7 +119,7 @@ async function submit() {
             <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                     <label class="label">مسئول انجام</label>
-                    <MemberPicker v-model="form.assignees" />
+                    <PeoplePicker v-model="form.assignees" placeholder="انتخاب یا نوشتن نام همکار" />
                 </div>
                 <div>
                     <label class="label">مهلت انجام</label>

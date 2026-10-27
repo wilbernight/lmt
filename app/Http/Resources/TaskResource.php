@@ -29,6 +29,7 @@ class TaskResource extends JsonResource
             'category' => $this->whenLoaded('category', fn () => $this->category?->only(['id', 'name', 'color'])),
             'labels' => $this->whenLoaded('labels', fn () => $this->labels->map->only(['id', 'name', 'color'])),
             'assignees' => $this->whenLoaded('assignees', fn () => $this->assignees->map->toCard()),
+            'people' => $this->whenLoaded('people', fn () => $this->people->map->toCard()),
             'creator' => $this->whenLoaded('creator', fn () => $this->creator->toCard()),
             'checklist_total' => $this->whenCounted('checklist'),
             'checklist_done' => $this->when(isset($this->checklist_done_count), fn () => $this->checklist_done_count),
@@ -45,6 +46,7 @@ class TaskResource extends JsonResource
             'category:id,name,color',
             'labels:id,name,color',
             'assignees:id,name,avatar_path,last_seen_at',
+            'people:id,name',
             'creator:id,name,avatar_path,last_seen_at',
         ];
     }

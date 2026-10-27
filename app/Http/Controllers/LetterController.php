@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\Letter;
 use App\Models\LetterReferral;
+use App\Models\Person;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Workspace;
@@ -52,7 +53,7 @@ class LetterController extends Controller
                 ->orWhere('number', (int) $request->query('q'))))
             ->when($request->filled('label'), fn ($q) => $q->whereHas('labels', fn ($l) => $l->whereKey($request->string('label'))))
             ->when($request->filled('priority'), fn ($q) => $q->where('priority', $request->string('priority')))
-            ->with(['sender:id,name,avatar_path,last_seen_at', 'labels:id,name,color', 'recipients:id,name'])
+            ->with(['sender:id,name,avatar_path,last_seen_at', 'labels:id,name,color', 'recipients:id,name', 'people:id,name'])
             ->withCount('attachments')
             ->latest()
             ->paginate(30)
@@ -65,7 +66,7 @@ class LetterController extends Controller
                 'priority' => $l->priority,
                 'confidential' => $l->confidential,
                 'sender' => $l->sender->toCard(),
-                'recipients' => $l->recipients->pluck('name')->take(3),
+                'recipients' => $l->recipients->pluck('name')->merge($l->people->pluck('name'))->take(3),
                 'labels' => $l->labels->map->only(['id', 'name', 'color']),
                 'attachments_count' => $l->attachments_count,
                 'unread' => $l->recipients->firstWhere('id', $user->id)?->pivot->read_at === null
@@ -111,7 +112,7 @@ class LetterController extends Controller
         $thread = Letter::query()
             ->where(fn ($q) => $q->whereKey($root->id)->orWhere('reply_to_id', $root->id))
             ->visibleTo($user)
-            ->with(['sender:id,name,avatar_path,last_seen_at', 'recipients:id,name,avatar_path,last_seen_at', 'attachments', 'labels:id,name,color'])
+            ->with(['sender:id,name,avatar_path,last_seen_at', 'recipients:id,name,avatar_path,last_seen_at', 'people', 'attachments', 'labels:id,name,color'])
             ->oldest()
             ->get()
             ->map(fn (Letter $l) => [
@@ -128,6 +129,8 @@ class LetterController extends Controller
                     // Read receipts are visible to the sender only.
                     'read_at' => $l->sender_id === $user->id ? $r->pivot->read_at : null,
                 ]),
+                // Recipients by name, without an account.
+                'people' => $l->people->map(fn ($p) => [...$p->toCard(), 'type' => $p->pivot->type]),
                 'labels' => $l->labels->map->only(['id', 'name', 'color']),
                 'attachments' => $l->attachments->map->toPayload(),
                 'created_at' => $l->created_at->toIso8601String(),
@@ -152,7 +155,7 @@ class LetterController extends Controller
     {
         $this->authorize('view', $letter);
 
-        $letter->load(['sender', 'recipients', 'attachments', 'referrals.from', 'referrals.to']);
+        $letter->load(['sender', 'recipients', 'people', 'attachments', 'referrals.from', 'referrals.to']);
 
         $people = $letter->recipients->pluck('id')->push($letter->sender_id)
             ->merge($letter->referrals->pluck('from_user_id'))
@@ -179,8 +182,16 @@ class LetterController extends Controller
             'dateNumeric' => $fa($jalali($letter->created_at)->format('Y/m/d')),
             'weekday' => $jalali($letter->created_at)->format('%A'),
             'time' => $fa($sent->format('H:i')),
-            'to' => $letter->recipients->where('pivot.type', 'to')->values(),
-            'cc' => $letter->recipients->where('pivot.type', 'cc')->values(),
+            'to' => collect($letter->recipients->where('pivot.type', 'to')->values()
+                ->map(fn ($r) => ['name' => $r->name, 'title' => $titles[$r->id] ?? null])->all())
+                ->merge($letter->people->where('pivot.type', 'to')->values()
+                    ->map(fn ($p) => ['name' => $p->name, 'title' => null])->all())
+                ->values(),
+            'cc' => collect($letter->recipients->where('pivot.type', 'cc')->values()
+                ->map(fn ($r) => ['name' => $r->name, 'title' => $titles[$r->id] ?? null])->all())
+                ->merge($letter->people->where('pivot.type', 'cc')->values()
+                    ->map(fn ($p) => ['name' => $p->name, 'title' => null])->all())
+                ->values(),
             'titles' => $titles,
             'referrals' => $letter->referrals->sortBy('created_at')->values()->map(fn ($r) => [
                 'from' => $r->from->name, 'to' => $r->to->name, 'note' => $r->note,
@@ -310,10 +321,15 @@ class LetterController extends Controller
             'body' => ['required', 'string', 'max:20000'],
             'priority' => ['required', Rule::in(array_keys(Letter::PRIORITIES))],
             'confidential' => ['boolean'],
-            'to' => ['required', 'array', 'min:1', 'max:100'],
+            // Recipients: members by id, anyone else by free-typed name.
+            'to' => ['array', 'max:100'],
             'to.*' => ['integer'],
+            'to_names' => ['array', 'max:100'],
+            'to_names.*' => ['string', 'max:120'],
             'cc' => ['array', 'max:100'],
             'cc.*' => ['integer'],
+            'cc_names' => ['array', 'max:100'],
+            'cc_names.*' => ['string', 'max:120'],
             'labels' => ['array', 'max:10'],
             'labels.*' => ['string', 'size:26'],
             'attachments' => ['array', 'max:20'],
@@ -323,12 +339,16 @@ class LetterController extends Controller
 
     private function send(Workspace $workspace, User $sender, array $data, ?string $replyTo = null): Letter
     {
-        $to = collect($workspace->filterMemberIds($data['to']))->reject(fn ($id) => $id === $sender->id);
+        $to = collect($workspace->filterMemberIds($data['to'] ?? []))->reject(fn ($id) => $id === $sender->id);
         $cc = collect($workspace->filterMemberIds($data['cc'] ?? []))->diff($to)->reject(fn ($id) => $id === $sender->id);
 
-        abort_if($to->isEmpty(), 422, 'گیرنده معتبر انتخاب نشده است.');
+        // Recipients without an account: free-typed names become People of this workspace.
+        $toPeople = Person::resolveMany($workspace, $data['to_names'] ?? [], $sender->id);
+        $ccPeople = collect(Person::resolveMany($workspace, $data['cc_names'] ?? [], $sender->id))->diff($toPeople)->values();
 
-        $letter = DB::transaction(function () use ($workspace, $sender, $data, $replyTo, $to, $cc) {
+        abort_if($to->isEmpty() && $toPeople === [], 422, 'گیرنده معتبر انتخاب نشده است.');
+
+        $letter = DB::transaction(function () use ($workspace, $sender, $data, $replyTo, $to, $cc, $toPeople, $ccPeople) {
             $number = (int) Letter::where('workspace_id', $workspace->id)->lockForUpdate()->max('number') + 1;
 
             $letter = new Letter([
@@ -346,6 +366,12 @@ class LetterController extends Controller
             $letter->recipients()->attach(
                 $to->mapWithKeys(fn ($id) => [$id => ['type' => 'to']])
                     ->union($cc->mapWithKeys(fn ($id) => [$id => ['type' => 'cc']]))
+                    ->all()
+            );
+
+            $letter->people()->attach(
+                collect($toPeople)->mapWithKeys(fn ($id) => [$id => ['type' => 'to']])
+                    ->union($ccPeople->mapWithKeys(fn ($id) => [$id => ['type' => 'cc']]))
                     ->all()
             );
 

@@ -3,7 +3,7 @@ import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowRight, Lock, Send } from '@lucide/vue';
 import Button from '@/Components/ui/Button.vue';
 import Field from '@/Components/ui/Field.vue';
-import MemberPicker from '@/Components/ui/MemberPicker.vue';
+import PeoplePicker from '@/Components/ui/PeoplePicker.vue';
 import LabelPicker from '@/Components/ui/LabelPicker.vue';
 import FileUpload from '@/Components/ui/FileUpload.vue';
 
@@ -12,8 +12,21 @@ const page = usePage();
 const ws = page.props.workspace;
 const me = page.props.auth.user.id;
 
+// Recipients/copies: members and colleagues without an account (free-typed names).
 const form = useForm({ subject: '', body: '', priority: 'normal', confidential: false, to: [], cc: [], labels: [], attachments: [] });
 const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
+
+function submit() {
+    form
+        .transform((data) => ({
+            ...data,
+            to: data.to.filter((e) => !e.external).map((e) => e.user_id),
+            to_names: data.to.filter((e) => e.external).map((e) => e.name),
+            cc: data.cc.filter((e) => !e.external).map((e) => e.user_id),
+            cc_names: data.cc.filter((e) => e.external).map((e) => e.name),
+        }))
+        .post(route('letters.store', ws.id));
+}
 </script>
 
 <template>
@@ -25,10 +38,10 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
             <h1 class="text-2xl font-black">نامه جدید</h1>
         </div>
 
-        <form class="card space-y-5 p-6 sm:p-8" @submit.prevent="form.post(route('letters.store', ws.id))">
+        <form class="card space-y-5 p-6 sm:p-8" @submit.prevent="submit">
             <div class="grid gap-4 sm:grid-cols-2">
-                <Field label="گیرندگان" :error="form.errors.to"><MemberPicker v-model="form.to" :exclude="[me, ...form.cc]" placeholder="انتخاب گیرنده" /></Field>
-                <Field label="رونوشت" :error="form.errors.cc"><MemberPicker v-model="form.cc" :exclude="[me, ...form.to]" placeholder="اختیاری" /></Field>
+                <Field label="گیرندگان" :error="form.errors.to ?? form.errors.to_names"><PeoplePicker v-model="form.to" :exclude="[me, ...form.cc.filter((e) => !e.external).map((e) => e.user_id)]" placeholder="انتخاب یا نوشتن نام گیرنده" /></Field>
+                <Field label="رونوشت" :error="form.errors.cc ?? form.errors.cc_names"><PeoplePicker v-model="form.cc" :exclude="[me, ...form.to.filter((e) => !e.external).map((e) => e.user_id)]" placeholder="اختیاری" /></Field>
             </div>
             <Field label="موضوع" :error="form.errors.subject"><input v-model="form.subject" maxlength="200" class="field h-11 text-base font-semibold" /></Field>
             <Field label="متن نامه" :error="form.errors.body"><textarea v-model="form.body" rows="12" maxlength="20000" class="field leading-8" /></Field>

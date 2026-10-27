@@ -63,6 +63,12 @@ class Task extends Model
         return $this->belongsToMany(User::class)->withTimestamps();
     }
 
+    /** Assignees without an account. */
+    public function people(): BelongsToMany
+    {
+        return $this->belongsToMany(Person::class, 'task_person')->withTimestamps();
+    }
+
     public function watchers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'task_watchers');

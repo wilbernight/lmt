@@ -8,6 +8,7 @@ use App\Http\Resources\TaskResource;
 use App\Models\AuditLog;
 use App\Models\Bookmark;
 use App\Models\BoardColumn;
+use App\Models\Person;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TimeEntry;
@@ -57,7 +58,14 @@ class TaskController extends Controller
         $tasks = $query
             ->with(TaskResource::withCard())
             ->withCount(TaskResource::cardCounts())
-            ->when($tab === 'done', fn ($q) => $q->latest('completed_at'), fn ($q) => $q->orderByRaw('due_at is null, due_at')->orderByDesc('priority'))
+            ->when(
+                $tab === 'done',
+                fn ($q) => $q->latest('completed_at'),
+                // The manual order the user arranged by dragging rows.
+                fn ($q) => $request->query('sort') === 'manual'
+                    ? $q->orderBy('position')->orderBy('created_at')
+                    : $q->orderByRaw('due_at is null, due_at')->orderByDesc('priority'),
+            )
             ->limit(300)
             ->get();
 
@@ -145,6 +153,7 @@ class TaskController extends Controller
 
             $assignees = $workspace->filterMemberIds($data['assignees'] ?? [$user->id]);
             $task->assignees()->sync($assignees);
+            $task->people()->sync(Person::resolveMany($workspace, $data['people_names'] ?? [], $user->id));
             $task->watchers()->sync($workspace->filterMemberIds($data['watchers'] ?? []));
             $task->syncLabels($data['labels'] ?? [], 'task');
 
@@ -180,6 +189,7 @@ class TaskController extends Controller
 
         $task->load([
             ...TaskResource::withCard(),
+            'people:id,name',
             'watchers:id,name,avatar_path,last_seen_at',
             'checklist',
             'attachments',
@@ -275,8 +285,8 @@ class TaskController extends Controller
                 $task->watchers()->sync($workspace->filterMemberIds($data['watchers'] ?? []));
             }
 
-            if (array_key_exists('assignees', $data)) {
-                $this->syncAssignees($task, $workspace, $data['assignees'] ?? [], $request->user());
+            if (array_key_exists('assignees', $data) || array_key_exists('people_names', $data)) {
+                $this->syncAssignees($task, $workspace, $data, $request->user());
             }
 
             if (! empty($data['attachments'])) {
@@ -381,6 +391,30 @@ class TaskController extends Controller
         return response()->json(['watching' => $result['attached'] !== []]);
     }
 
+    /** Manual ordering of the task list: dragged with the mouse, or moved up and down. */
+    public function reorder(Request $request, Workspace $workspace): JsonResponse
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:2', 'max:300'],
+            'ids.*' => ['string', 'size:26'],
+        ]);
+
+        $order = array_flip($data['ids']);
+
+        $tasks = Task::query()->inWorkspace($workspace)->whereIn('id', $data['ids'])->get()
+            ->filter(fn (Task $task) => $request->user()->can('update', $task))
+            ->sortBy(fn (Task $task) => $order[$task->id])
+            ->values();
+
+        abort_if($tasks->count() < 2, 422, 'جابه‌جایی این وظایف مجاز نیست.');
+
+        foreach ($tasks as $i => $task) {
+            $task->forceFill(['position' => ($i + 1) * 1024])->save();
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
     public function bookmark(Request $request, Workspace $workspace, Task $task): JsonResponse
     {
         $this->authorize('view', $task);
@@ -428,6 +462,9 @@ class TaskController extends Controller
             'estimate_minutes' => ['nullable', 'integer', 'min:1', 'max:100000'],
             'assignees' => ['array', 'max:50'],
             'assignees.*' => ['integer'],
+            // Colleagues without an account, referenced by free-typed name.
+            'people_names' => ['array', 'max:50'],
+            'people_names.*' => ['string', 'max:120'],
             'watchers' => ['array', 'max:50'],
             'watchers.*' => ['integer'],
             'labels' => ['array', 'max:20'],
@@ -485,12 +522,21 @@ class TaskController extends Controller
         return $id ? $workspace->categories()->whereKey($id)->value('id') : null;
     }
 
-    private function syncAssignees(Task $task, Workspace $workspace, array $ids, User $actor): void
+    /** Moving a task between people: members and free-typed external colleagues. */
+    private function syncAssignees(Task $task, Workspace $workspace, array $data, User $actor): void
     {
-        $result = $task->assignees()->sync($workspace->filterMemberIds($ids));
+        $result = $task->assignees()->sync($workspace->filterMemberIds($data['assignees'] ?? []));
+        $peopleResult = $task->people()->sync(Person::resolveMany($workspace, $data['people_names'] ?? [], $actor->id));
+        $attachedPeople = Person::whereIn('id', $peopleResult['attached'])->pluck('name')->all();
+
+        if ($result['attached'] !== [] || $attachedPeople !== []) {
+            $task->log('assigned', ['users' => [
+                ...User::whereIn('id', $result['attached'])->pluck('name')->all(),
+                ...$attachedPeople,
+            ]]);
+        }
 
         if ($result['attached'] !== []) {
-            $task->log('assigned', ['users' => User::whereIn('id', $result['attached'])->pluck('name')->all()]);
             $this->notifyAssigned($task, User::whereIn('id', $result['attached'])->get(), $actor);
         }
     }

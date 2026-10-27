@@ -78,6 +78,8 @@ class HandleInertiaRequests extends Middleware
                 ->orderBy('name')
                 ->get(['users.id', 'users.name', 'users.avatar_path', 'users.last_seen_at'])
                 ->map(fn ($m) => [...$m->toCard(), 'role' => $m->pivot->role, 'job_title' => $m->pivot->job_title]),
+            // Colleagues referenced by name without an account (pickers suggest them).
+            'people' => $workspace->people()->get(['id', 'name'])->sortBy('name')->values()->map(fn ($p) => $p->toCard()),
         ];
     }
 

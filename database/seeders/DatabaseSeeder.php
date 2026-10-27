@@ -10,7 +10,11 @@ use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Letter;
 use App\Models\Message;
+use App\Models\Minute;
+use App\Models\MinuteAction;
+use App\Models\MinuteParticipant;
 use App\Models\Note;
+use App\Models\Person;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskComment;
@@ -227,6 +231,78 @@ class DatabaseSeeder extends Seeder
             $letter->save();
             $letter->recipients()->attach([$ehsan->id => ['type' => 'to'], $ali->id => ['type' => 'cc']]);
         }
+
+        // Meeting minutes (صورت‌جلسه) ---------------------------------------------
+        $consultant = new Person(['name' => 'مهندس طاهری — مشاور زیرساخت']);
+        $consultant->workspace_id = $dev->id;
+        $consultant->created_by = $ehsan->id;
+        $consultant->save();
+
+        $review = new Task(['title' => 'نهایی کردن طرح صفحه نوبت‌دهی', 'priority' => 2, 'due_at' => now()->addDays(3)->setTime(12, 0)]);
+        $review->workspace_id = $dev->id;
+        $review->creator_id = $ehsan->id;
+        $review->save();
+        $review->assignees()->sync([$sara->id]);
+
+        $minute = new Minute([
+            'subject' => 'جلسه هم‌راستایی محصول — کلینیک حامی',
+            'body' => "۱. وضعیت طراحی صفحات مرور شد؛ وایرفریم نوبت‌دهی تأیید و طرح نهایی تا پایان هفته تحویل می‌شود.\n۲. درگاه پرداخت آماده تست است؛ مستندات اتصال از طرف مشاور زیرساخت دریافت شود.\n۳. محتوای صفحات تا جلسه بعد توسط تیم فروش تدارک دیده شود.",
+            'held_at' => now()->subDays(2)->setTime(11, 0),
+            'location' => 'اتاق جلسه ۲',
+            'status' => 'final',
+        ]);
+        $minute->workspace_id = $dev->id;
+        $minute->organizer_id = $ehsan->id;
+        $minute->created_by = $ehsan->id;
+        $minute->number = 1;
+        $minute->save();
+
+        foreach ([[$ehsan, null, true], [$sara, null, true], [$ali, null, true], [$maryam, null, false], [null, $consultant, true]] as [$user, $person, $attended]) {
+            $row = new MinuteParticipant(['attended' => $attended]);
+            $row->minute_id = $minute->id;
+            $row->user_id = $user?->id;
+            $row->person_id = $person?->id;
+            $row->save();
+        }
+
+        foreach ([
+            ['نهایی کردن طرح صفحه نوبت‌دهی', $sara, null, now()->addDays(3), $review->id],
+            ['دریافت مستندات اتصال درگاه', null, $consultant, now()->addDays(7), null],
+            ['تدارک محتوای صفحات', $maryam, null, now()->addDays(5), null],
+        ] as $i => [$title, $user, $person, $due, $taskId]) {
+            $action = new MinuteAction(['title' => $title, 'due_at' => $due, 'position' => $i]);
+            $action->minute_id = $minute->id;
+            $action->user_id = $user?->id;
+            $action->person_id = $person?->id;
+            $action->task_id = $taskId;
+            $action->save();
+        }
+
+        $minute->approvals()->sync([$ehsan->id => ['created_at' => now()->subDay()], $sara->id => ['created_at' => now()->subHours(20)]]);
+
+        $draft = new Minute([
+            'subject' => 'بررسی هزینه‌های سرور و میزبانی',
+            'body' => 'مقایسه پلن‌های میزبانی و تصمیم درباره تمدید سرور فعلی در جلسه بعد.',
+            'held_at' => now()->subDay()->setTime(15, 30),
+            'location' => 'آنلاین — تماس تصویری',
+            'status' => 'draft',
+        ]);
+        $draft->workspace_id = $dev->id;
+        $draft->organizer_id = $ehsan->id;
+        $draft->created_by = $ehsan->id;
+        $draft->number = 2;
+        $draft->save();
+
+        foreach ([[$ehsan, true], [$reza, true], [$ali, false]] as [$user, $attended]) {
+            $row = new MinuteParticipant(['attended' => $attended]);
+            $row->minute_id = $draft->id;
+            $row->user_id = $user->id;
+            $row->save();
+        }
+
+        $open = new MinuteAction(['title' => 'استخراج گزارش مصرف منابع سرور', 'position' => 0, 'due_at' => now()->addDays(2)]);
+        $open->minute_id = $draft->id;
+        $open->save();
 
         // Notes ---------------------------------------------------------------------
         $note = new Note([

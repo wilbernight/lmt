@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\WorkspaceRole;
 use App\Models\Customer;
 use App\Models\Letter;
+use App\Models\Minute;
 use App\Models\Note;
 use App\Models\Project;
 use App\Models\Task;
@@ -46,6 +48,17 @@ class SearchController extends Controller
             ->each(fn ($l) => $results->push([
                 'type' => 'letter', 'id' => $l->id, 'title' => $l->subject, 'meta' => '#'.$l->number,
                 'url' => route('letters.show', [$workspace, $l]),
+            ]));
+
+        $minutes = Minute::query()->inWorkspace($workspace);
+        if (! $user->roleIn($workspace)?->atLeast(WorkspaceRole::Admin)) {
+            $minutes->visibleTo($user);
+        }
+        Minute::whereIn('id', array_slice($this->matchingIds($minutes, ['subject'], $q), 0, 5))
+            ->get(['id', 'subject', 'number'])
+            ->each(fn ($m) => $results->push([
+                'type' => 'minute', 'id' => $m->id, 'title' => $m->subject, 'meta' => 'جلسه #'.$m->number,
+                'url' => route('minutes.show', [$workspace, $m]),
             ]));
 
         $notes = Note::query()->inWorkspace($workspace)->where('user_id', $user->id);

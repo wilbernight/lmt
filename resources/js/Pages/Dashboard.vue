@@ -124,11 +124,17 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
                         <span class="size-2.5 rounded-full bg-danger" />
                         <h2 class="font-bold">پیگیری از دیگران</h2>
                         <span class="chip bg-danger-soft text-danger">{{ faNum(following.length) }} مورد</span>
+                        <button
+                            v-if="page.props.workspace.role !== 'guest'"
+                            class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-accent-ink hover:bg-accent-soft"
+                            title="ساخت وظیفه پیگیری؛ حتی بدون ذکر نام همکار"
+                            @click="openCreateTask({ assignees: [] })"
+                        ><Plus class="size-3.5" /> پیگیری جدید</button>
                         <Link :href="route('tasks.index', [ws.id, { tab: 'following' }])" class="ms-auto text-xs font-semibold text-accent-ink hover:underline">همه</Link>
                     </header>
                     <div class="max-h-[28rem] overflow-y-auto">
                         <TaskRow v-for="t in following" :key="t.id" :task="t" />
-                        <EmptyState v-if="!following.length" :icon="Eye" title="کاری برای پیگیری ندارید" text="وظایفی که به همکاران می‌سپارید اینجا قابل پیگیری است." compact />
+                        <EmptyState v-if="!following.length" :icon="Eye" title="کاری برای پیگیری ندارید" text="وظیفه‌ای را برای پیگیری بسازید — با نام همکار یا بدون ذکر نام." compact />
                     </div>
                 </section>
             </div>

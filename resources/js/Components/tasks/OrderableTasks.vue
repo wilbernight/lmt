@@ -14,7 +14,7 @@ const { shown, dragId, onDragStart, onDragOver, onDrop, nudge } = useManualOrder
     <div
         v-for="t in shown"
         :key="t.id"
-        class="group/row relative border-b border-line ps-3.5 pe-4 last:border-0"
+        class="group/row relative border-b border-line ps-3.5 pe-4 transition-colors last:border-0 hover:bg-surface-2"
         :class="dragId === t.id && 'opacity-40'"
         draggable="true"
         @dragstart="onDragStart(t, $event)"

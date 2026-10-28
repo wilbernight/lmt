@@ -82,9 +82,9 @@ async function submit() {
             project_id: props.withProjects ? projectId.value || null : null,
         });
 
-        toast(data.message || 'انتقال انجام شد.');
-        emit('done', data);
+        toast.success(data.message || 'انتقال انجام شد.');
         emit('close');
+        emit('done', data);
     } catch {
         // Errors are toasted by the http layer.
     } finally {

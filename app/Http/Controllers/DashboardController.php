@@ -40,7 +40,8 @@ class DashboardController extends Controller
             ->assignedTo($user)
             ->with(TaskResource::withCard())
             ->withCount(TaskResource::cardCounts())
-            ->orderByRaw('due_at is null, due_at')
+            ->orderBy('position')
+            ->orderBy('created_at')
             ->limit(50)
             ->get();
 
@@ -52,7 +53,8 @@ class DashboardController extends Controller
             ->whereDoesntHave('assignees', fn ($q) => $q->whereKey($user->id))
             ->with(TaskResource::withCard())
             ->withCount(TaskResource::cardCounts())
-            ->orderByRaw('due_at is null, due_at')
+            ->orderBy('position')
+            ->orderBy('created_at')
             ->limit(50)
             ->get();
 

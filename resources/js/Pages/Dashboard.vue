@@ -7,7 +7,7 @@ import {
 import Avatar from '@/Components/ui/Avatar.vue';
 import AvatarStack from '@/Components/ui/AvatarStack.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
-import TaskRow from '@/Components/tasks/TaskRow.vue';
+import OrderableTasks from '@/Components/tasks/OrderableTasks.vue';
 import { faNum, greeting, jDate, relative } from '@/lib/format';
 import { openCreateTask, taskModal } from '@/composables/useTaskModal';
 
@@ -114,7 +114,7 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
                         <Link :href="route('tasks.index', ws.id)" class="ms-auto text-xs font-semibold text-accent-ink hover:underline">همه</Link>
                     </header>
                     <div class="max-h-[28rem] overflow-y-auto">
-                        <TaskRow v-for="t in myTasks" :key="t.id" :task="t" />
+                        <OrderableTasks :tasks="myTasks" />
                         <EmptyState v-if="!myTasks.length" :icon="CheckCheck" title="کار بازی ندارید" text="وظایفی که به شما سپرده شود اینجا نمایش داده می‌شود." compact />
                     </div>
                 </section>
@@ -133,7 +133,7 @@ const priorityTone = { normal: 'slate', urgent: 'amber', instant: 'rose' };
                         <Link :href="route('tasks.index', [ws.id, { tab: 'following' }])" class="ms-auto text-xs font-semibold text-accent-ink hover:underline">همه</Link>
                     </header>
                     <div class="max-h-[28rem] overflow-y-auto">
-                        <TaskRow v-for="t in following" :key="t.id" :task="t" />
+                        <OrderableTasks :tasks="following" />
                         <EmptyState v-if="!following.length" :icon="Eye" title="کاری برای پیگیری ندارید" text="وظیفه‌ای را برای پیگیری بسازید — با نام همکار یا بدون ذکر نام." compact />
                     </div>
                 </section>

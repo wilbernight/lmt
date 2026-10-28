@@ -100,11 +100,67 @@ class ExternalPeopleTest extends TestCase
         $this->assertTrue($c->fresh()->position < $a->fresh()->position);
         $this->assertTrue($a->fresh()->position < $b->fresh()->position);
 
-        // The manual order is what the tasks page serves.
-        $response = $this->actingAs($me)->get("/w/{$ws->id}/tasks?tab=created&sort=manual")->assertOk();
+        // The arranged order is what the tasks page serves by default.
+        $response = $this->actingAs($me)->get("/w/{$ws->id}/tasks?tab=created")->assertOk();
         $order = collect($response->viewData('page')['props']['tasks'])->pluck('id');
 
         $this->assertSame([$c->id, $a->id, $b->id], $order->all());
+    }
+
+    public function test_a_partial_reorder_stays_inside_its_slots(): void
+    {
+        $ws = $this->workspace();
+        $me = $ws->owner;
+        $project = $this->project($ws, $me);
+        $a = $this->task($ws, $me, $project);
+        $b = $this->task($ws, $me, $project);
+        $c = $this->task($ws, $me, $project);
+        $d = $this->task($ws, $me, $project);
+
+        // An arrangement to start from: a, b, c, d.
+        $this->actingAs($me)->postJson("/w/{$ws->id}/tasks/reorder", ['ids' => [$a->id, $b->id, $c->id, $d->id]])->assertOk();
+
+        // The dashboard shows a subset; only b and d are sent, rearranged.
+        $this->actingAs($me)->postJson("/w/{$ws->id}/tasks/reorder", ['ids' => [$d->id, $b->id]])->assertOk();
+
+        // They swap slots, but stay between their neighbours: a first, then d, c, b.
+        $this->assertTrue($a->fresh()->position < $d->fresh()->position);
+        $this->assertTrue($d->fresh()->position < $c->fresh()->position);
+        $this->assertTrue($c->fresh()->position < $b->fresh()->position);
+    }
+
+    public function test_the_dashboard_serves_the_arranged_order(): void
+    {
+        $ws = $this->workspace();
+        $me = $ws->owner;
+        $a = $this->task($ws, $me, null, [$me]);
+        $b = $this->task($ws, $me, null, [$me]);
+        $c = $this->task($ws, $me, null, [$me]);
+
+        $this->actingAs($me)
+            ->postJson("/w/{$ws->id}/tasks/reorder", ['ids' => [$c->id, $a->id, $b->id]])
+            ->assertOk();
+
+        $response = $this->actingAs($me)->get("/w/{$ws->id}")->assertOk();
+        $order = collect($response->viewData('page')['props']['myTasks'])->pluck('id');
+
+        $this->assertSame([$c->id, $a->id, $b->id], $order->all());
+    }
+
+    public function test_changing_a_tasks_column_keeps_its_place_in_the_list(): void
+    {
+        $ws = $this->workspace();
+        $me = $ws->owner;
+        $project = $this->project($ws, $me);
+        $task = $this->task($ws, $me, $project);
+        $target = $project->columns()->skip(1)->first();
+
+        $this->actingAs($me)
+            ->postJson("/w/{$ws->id}/tasks/{$task->id}/move", ['column_id' => $target->id])
+            ->assertOk();
+
+        $this->assertSame($target->id, $task->fresh()->column_id);
+        $this->assertSame((float) $task->position, (float) $task->fresh()->position);
     }
 
     public function test_a_letter_can_be_sent_to_an_external_recipient_by_name_alone(): void

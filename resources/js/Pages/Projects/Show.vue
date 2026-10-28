@@ -18,7 +18,6 @@ import DatePicker from '@/Components/ui/DatePicker.vue';
 import TaskCard from '@/Components/tasks/TaskCard.vue';
 import TaskRow from '@/Components/tasks/TaskRow.vue';
 import ProjectTimeReport from '@/Components/ProjectTimeReport.vue';
-import http from '@/lib/http';
 import { faNum, hours } from '@/lib/format';
 import { openCreateTask, taskModal } from '@/composables/useTaskModal';
 import { confirmDialog } from '@/composables/useConfirm';
@@ -41,25 +40,6 @@ watch(() => [props.tasks, props.project.columns], build, { immediate: true });
 
 const reload = () => router.reload({ only: ['tasks', 'project'] });
 watch(() => taskModal.version, reload);
-
-async function onMove(columnId, event) {
-    const moved = event.added?.element ?? event.moved?.element;
-    if (!moved) return;
-    const list = board.value[columnId];
-    const index = list.findIndex((t) => t.id === moved.id);
-    const before = list[index - 1]?.position;
-    const after = list[index + 1]?.position;
-    const position = before !== undefined && after !== undefined ? (before + after) / 2 : before !== undefined ? before + 1024 : after !== undefined ? after - 1024 : 1024;
-
-    moved.position = position;
-    moved.column_id = columnId;
-    try {
-        const { data } = await http.post(route('tasks.move', [ws.id, moved.id]), { column_id: columnId, position });
-        moved.completed_at = data.completed_at;
-    } catch {
-        reload();
-    }
-}
 
 // Live updates from teammates
 let channel = null;
@@ -202,22 +182,11 @@ const roleLabel = { manager: 'مدیر پروژه', member: 'عضو', viewer: '�
                             </Dropdown>
                         </div>
                     </header>
-                    <draggable
-                        :list="board[column.id]"
-                        item-key="id"
-                        group="tasks"
-                        :disabled="!can.contribute"
-                        :animation="180"
-                        ghost-class="sortable-ghost"
-                        drag-class="sortable-drag"
-                        class="flex min-h-24 flex-1 flex-col gap-2.5 overflow-y-auto px-2.5 pb-3"
-                        @change="onMove(column.id, $event)"
-                    >
-                        <template #item="{ element }"><TaskCard :task="element" /></template>
-                        <template #footer>
-                            <p v-if="!board[column.id]?.length" class="rounded-xl border-2 border-dashed border-line py-6 text-center text-xs text-ink-3">کاری در این ستون نیست</p>
-                        </template>
-                    </draggable>
+                    <!-- Tasks are not draggable on the board — their column is changed from the task window. -->
+                    <div class="flex min-h-24 flex-1 flex-col gap-2.5 overflow-y-auto px-2.5 pb-3">
+                        <TaskCard v-for="element in board[column.id]" :key="element.id" :task="element" />
+                        <p v-if="!board[column.id]?.length" class="rounded-xl border-2 border-dashed border-line py-6 text-center text-xs text-ink-3">کاری در این ستون نیست</p>
+                    </div>
                 </section>
             </template>
             <template #footer>

@@ -478,7 +478,7 @@ const activityText = (a) =>
                         class="field h-9 py-1 text-xs"
                         :value="task.column_id"
                         :disabled="!can.update"
-                        @change="http.post(url('tasks.move'), { column_id: $event.target.value, position: Date.now() / 1000 }).then(() => { load(); changed(); })"
+                        @change="http.post(url('tasks.move'), { column_id: $event.target.value }).then(() => { load(); changed(); })"
                     >
                         <option v-for="c in task.columns" :key="c.id" :value="c.id">{{ c.name }}</option>
                     </select>

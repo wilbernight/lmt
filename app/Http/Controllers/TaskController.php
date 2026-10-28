@@ -61,10 +61,8 @@ class TaskController extends Controller
             ->when(
                 $tab === 'done',
                 fn ($q) => $q->latest('completed_at'),
-                // The manual order the user arranged by dragging rows.
-                fn ($q) => $request->query('sort') === 'manual'
-                    ? $q->orderBy('position')->orderBy('created_at')
-                    : $q->orderByRaw('due_at is null, due_at')->orderByDesc('priority'),
+                // The order the user arranged by dragging rows; ties keep creation order.
+                fn ($q) => $q->orderBy('position')->orderBy('created_at'),
             )
             ->limit(300)
             ->get();
@@ -72,7 +70,7 @@ class TaskController extends Controller
         return Inertia::render('Tasks/Index', [
             'tab' => $tab,
             'tasks' => TaskResource::collection($tasks),
-            'filters' => $request->only(['q', 'category', 'label', 'priority', 'project', 'due', 'sort']),
+            'filters' => $request->only(['q', 'category', 'label', 'priority', 'project', 'due']),
             ...$this->formOptions($request, $workspace),
             'openTask' => $request->query('task'),
         ]);
@@ -343,7 +341,7 @@ class TaskController extends Controller
         return response()->json(['completed_at' => $task->completed_at?->toIso8601String()]);
     }
 
-    /** Drag & drop on the board: change column and/or position. */
+    /** Change a task's column from its window. The board itself is not draggable. */
     public function move(Request $request, Workspace $workspace, Task $task): JsonResponse
     {
         abort_unless($task->project_id, 422);
@@ -351,7 +349,7 @@ class TaskController extends Controller
 
         $data = $request->validate([
             'column_id' => ['required', 'string', 'size:26'],
-            'position' => ['required', 'numeric', 'between:-1000000000,1000000000'],
+            'position' => ['sometimes', 'nullable', 'numeric', 'between:-1000000000,1000000000'],
         ]);
 
         $column = $this->resolveColumn($task->project, $data['column_id']);
@@ -363,7 +361,10 @@ class TaskController extends Controller
 
         $from = $task->column_id;
         $task->column_id = $column->id;
-        $task->position = (float) $data['position'];
+        // Only the column changes by default — the list order stays as the user arranged it.
+        if (($data['position'] ?? null) !== null) {
+            $task->position = (float) $data['position'];
+        }
 
         if ($column->is_done && ! $task->isCompleted()) {
             $task->forceFill(['completed_at' => now(), 'completed_by' => $request->user()->id]);
@@ -408,8 +409,20 @@ class TaskController extends Controller
 
         abort_if($tasks->count() < 2, 422, 'جابه‌جایی این وظایف مجاز نیست.');
 
+        // The tasks are given back the position slots they already occupied, in
+        // the new order — so a partial list (the dashboard shows a subset) never
+        // jumps over tasks that were not sent. Ties are nudged apart.
+        $slots = $tasks->pluck('position')->sort()->values();
+        $next = 0.0;
+
         foreach ($tasks as $i => $task) {
-            $task->forceFill(['position' => ($i + 1) * 1024])->save();
+            $position = max((float) $slots[$i], $next);
+
+            if ($task->position != $position) {
+                $task->forceFill(['position' => $position])->save();
+            }
+
+            $next = $position + 1;
         }
 
         return response()->json(['ok' => true]);

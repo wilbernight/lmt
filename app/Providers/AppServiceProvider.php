@@ -10,6 +10,7 @@ use App\Models\Letter;
 use App\Models\Message;
 use App\Models\Minute;
 use App\Models\Note;
+use App\Models\Person;
 use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskComment;
@@ -64,6 +65,7 @@ class AppServiceProvider extends ServiceProvider
             'message' => Message::class,
             'letter' => Letter::class,
             'minute' => Minute::class,
+            'person' => Person::class,
             'note' => Note::class,
             'customer' => Customer::class,
             'attachment' => Attachment::class,

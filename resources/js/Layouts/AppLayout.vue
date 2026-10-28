@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     ArrowRight, Bell, Building2, ChartColumn, ChevronDown, Clock, ClipboardList, FileText, MessageSquareText, Contact, FolderKanban, House, ListChecks, LogOut, Mailbox, Menu,
-    Gauge, MessagesSquare, Monitor, Moon, Plus, Search, Settings, ShieldCheck, SlidersHorizontal, StickyNote, Sun, UserPlus, Users, X,
+    Gauge, MessagesSquare, Monitor, Moon, Plus, Search, Settings, ShieldCheck, SlidersHorizontal, StickyNote, Sun, UserPlus, UserRound, Users, X,
 } from '@lucide/vue';
 import Avatar from '@/Components/ui/Avatar.vue';
 import BrandLogo from '@/Components/BrandLogo.vue';
@@ -38,6 +38,7 @@ const adminNav = computed(() =>
               { label: 'پنل مدیریت سایت', href: route('admin.dashboard'), icon: Gauge, tone: 'rose', match: '/admin', exact: true },
               { label: 'کاربران', href: route('admin.users.index'), icon: Users, tone: 'rose', match: '/admin/users' },
               { label: 'میزکارها', href: route('admin.workspaces.index'), icon: Building2, tone: 'rose', match: '/admin/workspaces' },
+              { label: 'اشخاص بدون اکانت', href: route('admin.people.index'), icon: UserRound, tone: 'rose', match: '/admin/people' },
               { label: 'پیامک', href: route('admin.sms.index'), icon: MessageSquareText, tone: 'rose', match: '/admin/sms' },
               { label: 'تنظیمات سایت', href: route('admin.settings'), icon: SlidersHorizontal, tone: 'rose', match: '/admin/settings' },
               { label: 'سربرگ و نشانی نامه‌ها', href: route('admin.settings') + '#letterhead', icon: FileText, tone: 'rose', match: '/admin/settings#letterhead' },

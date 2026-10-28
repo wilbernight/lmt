@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminPersonController;
 use App\Http\Controllers\Admin\AdminSettingsController;
 use App\Http\Controllers\Admin\AdminSmsController;
 use App\Http\Controllers\Admin\AdminUserController;
@@ -100,6 +101,9 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::get('/workspaces', [AdminWorkspaceController::class, 'index'])->name('workspaces.index');
         Route::put('/workspaces/{workspace}', [AdminWorkspaceController::class, 'update'])->name('workspaces.update');
         Route::post('/workspaces/{workspace}/lock', [AdminWorkspaceController::class, 'lock'])->name('workspaces.lock');
+        Route::get('/people', [AdminPersonController::class, 'index'])->name('people.index');
+        Route::put('/people/{person}', [AdminPersonController::class, 'update'])->name('people.update');
+        Route::delete('/people/{person}', [AdminPersonController::class, 'destroy'])->name('people.destroy');
         Route::get('/sms', [AdminSmsController::class, 'index'])->name('sms.index');
         Route::put('/sms/settings', [AdminSmsController::class, 'updateSettings'])->name('sms.settings');
         Route::post('/sms/test', [AdminSmsController::class, 'test'])->middleware('throttle:10,1')->name('sms.test');

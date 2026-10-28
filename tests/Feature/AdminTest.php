@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Person;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,7 +55,7 @@ class AdminTest extends TestCase
         $user = User::factory()->create();
         $this->workspace($user);
 
-        foreach (['/admin', '/admin/users', "/admin/users/{$user->id}", '/admin/workspaces', '/admin/settings'] as $path) {
+        foreach (['/admin', '/admin/users', "/admin/users/{$user->id}", '/admin/workspaces', '/admin/people', '/admin/settings'] as $path) {
             $this->asAdmin($admin)->get($path)->assertOk();
         }
     }
@@ -188,5 +189,51 @@ class AdminTest extends TestCase
         ])->assertSessionHasErrors('email');
 
         $this->assertDatabaseMissing('users', ['email' => 'new@example.com']);
+    }
+
+    public function test_admin_manages_people_without_accounts(): void
+    {
+        $admin = $this->admin();
+        $ws = $this->workspace();
+        $me = $ws->owner;
+        $colleague = $this->member($ws);
+
+        // Two people referenced by free-typed names inside a task and a letter.
+        $task = $this->task($ws, $me);
+        $task->people()->sync(Person::resolveMany($ws, ['مهدی رضایی', 'شخص بی‌استفاده'], $me->id));
+        $this->actingAs($me)->post("/w/{$ws->id}/letters", [
+            'subject' => 'تست', 'body' => 'متن', 'priority' => 'normal', 'to' => [$colleague->id], 'to_names' => ['مهدی رضایی'],
+        ])->assertRedirect();
+        $letter = $ws->letters()->firstOrFail();
+
+        $page = $this->asAdmin($admin)->get('/admin/people')->assertOk();
+
+        $rows = collect($page->viewData('page')['props']['people']['data']);
+        $this->assertSame(2, $rows->count());
+
+        $mehdi = $ws->people()->get()->firstWhere('name', 'مهدی رضایی');
+        $row = $rows->firstWhere('id', $mehdi->id);
+
+        // Usage counts let the admin judge before deleting.
+        $this->assertSame(1, $row['tasks_count']);
+        $this->assertSame(1, $row['letters_count']);
+        $this->assertSame(0, $row['minutes_count']);
+        $this->assertSame($ws->name, $row['workspace']['name']);
+
+        // Renaming updates the directory everywhere it is referenced.
+        $this->asAdmin($admin)->put("/admin/people/{$mehdi->id}", ['name' => 'مهدی رضایی نژاد'])->assertRedirect();
+        $this->assertSame('مهدی رضایی نژاد', $mehdi->fresh()->name);
+        $this->assertContains('مهدی رضایی نژاد', $task->fresh()->people->pluck('name')->all());
+
+        // A duplicate — even spelled with Arabic «ي» — is refused.
+        $twinId = Person::resolveMany($ws, ['مهدی رضایی'], $me->id)[0];
+        $this->asAdmin($admin)->putJson("/admin/people/{$mehdi->id}", ['name' => 'مهدی رضا'."\u{064A}\u{064A}"])->assertUnprocessable();
+
+        // Deleting removes the person together with their references.
+        $this->asAdmin($admin)->delete("/admin/people/{$mehdi->id}")->assertRedirect();
+        $this->assertNull($mehdi->fresh());
+        $this->assertSame(['شخص بی‌استفاده'], $task->fresh()->people->pluck('name')->all());
+        $this->assertCount(0, $letter->fresh()->people);
+        $this->assertSame(2, $ws->people()->count()); // the twin and the unused person stay
     }
 }

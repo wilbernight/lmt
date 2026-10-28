@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Morilog\Jalali\CalendarUtils;
 
 /**
@@ -42,6 +43,12 @@ class Person extends Model
     public function minutes(): BelongsToMany
     {
         return $this->belongsToMany(Minute::class, 'minute_participants', 'person_id', 'minute_id')->withPivot('attended')->withTimestamps();
+    }
+
+    /** Action items handed to this person (counted on the admin page). */
+    public function minuteActions(): HasMany
+    {
+        return $this->hasMany(MinuteAction::class);
     }
 
     /** Card shape mirroring User::toCard(), plus the external marker. */

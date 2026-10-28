@@ -1,11 +1,12 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { ArrowRight, BadgeCheck, CalendarClock, CheckCheck, ClipboardList, FilePenLine, Lock, MapPin, Printer, Send, Stamp, Trash2, UserCheck, UserX, Users } from '@lucide/vue';
+import { ArrowRight, BadgeCheck, CalendarClock, CheckCheck, ClipboardList, FilePenLine, FolderOutput, Lock, MapPin, Printer, Send, Stamp, Trash2, UserCheck, UserX, Users } from '@lucide/vue';
 import Button from '@/Components/ui/Button.vue';
 import Avatar from '@/Components/ui/Avatar.vue';
 import AttachmentList from '@/Components/ui/AttachmentList.vue';
 import EmptyState from '@/Components/ui/EmptyState.vue';
+import TransferDialog from '@/Components/ui/TransferDialog.vue';
 import { confirmDialog } from '@/composables/useConfirm';
 import { toast } from '@/composables/useToast';
 import http from '@/lib/http';
@@ -21,6 +22,8 @@ const m = props.minute;
 const present = m.participants.filter((p) => p.attended);
 const absent = m.participants.filter((p) => !p.attended);
 const busyAction = ref(null);
+const transferring = ref(false);
+const onTransferred = (data) => router.visit(data.url);
 
 const printMinute = () => window.open(route('minutes.print', [ws.id, m.id, { auto: 1 }]), '_blank', 'noopener');
 
@@ -62,6 +65,7 @@ async function toTask(a) {
             </span>
             <div class="ms-auto flex flex-wrap items-center gap-2 print:hidden">
                 <Button variant="secondary" size="icon" aria-label="چاپ" @click="printMinute"><Printer class="size-4" /></Button>
+                <Button v-if="can.transfer" variant="secondary" @click="transferring = true"><FolderOutput class="size-4" /> انتقال</Button>
                 <Button v-if="can.update" variant="secondary" :href="route('minutes.edit', [ws.id, m.id])"><FilePenLine class="size-4" /> ویرایش</Button>
                 <Button v-if="can.update && m.status !== 'final'" @click="finalize"><Lock class="size-4" /> نهایی‌سازی</Button>
                 <Button v-if="can.delete" variant="ghost" size="icon" aria-label="حذف" class="text-danger" @click="remove"><Trash2 class="size-4" /></Button>
@@ -170,4 +174,12 @@ async function toTask(a) {
             </Button>
         </section>
     </div>
+
+    <TransferDialog
+        :show="transferring"
+        title="انتقال صورت‌جلسه"
+        :endpoint="route('minutes.transfer', [ws.id, m.id])"
+        @close="transferring = false"
+        @done="onTransferred"
+    />
 </template>

@@ -27,6 +27,7 @@ use App\Http\Controllers\TaskCommentController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TaxonomyController;
 use App\Http\Controllers\TimeController;
+use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 
@@ -116,6 +117,9 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::get('/search', SearchController::class)->middleware('throttle:search')->name('search');
         Route::post('/attachments', [AttachmentController::class, 'store'])->middleware('throttle:uploads')->name('attachments.store');
 
+        // Destinations for moving a task / letter / minute elsewhere.
+        Route::get('/transfer/options', [TransferController::class, 'options'])->name('transfer.options');
+
         // Workspace administration
         Route::get('/settings', [WorkspaceController::class, 'settings'])->name('workspace.settings');
         Route::put('/settings', [WorkspaceController::class, 'update'])->name('workspace.update');
@@ -163,6 +167,7 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::post('/tasks/reorder', [TaskController::class, 'reorder'])->middleware('throttle:writes')->name('tasks.reorder');
         Route::post('/tasks/{task}/watch', [TaskController::class, 'watch'])->name('tasks.watch');
         Route::post('/tasks/{task}/bookmark', [TaskController::class, 'bookmark'])->name('tasks.bookmark');
+        Route::post('/tasks/{task}/transfer', [TransferController::class, 'task'])->middleware('throttle:writes')->name('tasks.transfer');
         Route::post('/tasks/{task}/checklist', [ChecklistController::class, 'store'])->name('checklist.store');
         Route::put('/tasks/{task}/checklist/reorder', [ChecklistController::class, 'reorder'])->name('checklist.reorder');
         Route::patch('/tasks/{task}/checklist/{checklistItem}', [ChecklistController::class, 'update'])->name('checklist.update');
@@ -198,6 +203,7 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::post('/letters/{letter}/refer', [LetterController::class, 'refer'])->middleware('throttle:writes')->name('letters.refer');
         Route::post('/letters/{letter}/archive', [LetterController::class, 'archive'])->name('letters.archive');
         Route::put('/letters/{letter}/labels', [LetterController::class, 'labels'])->name('letters.labels');
+        Route::post('/letters/{letter}/transfer', [TransferController::class, 'letter'])->middleware('throttle:writes')->name('letters.transfer');
 
         // Meeting minutes (صورت‌جلسه)
         Route::get('/minutes', [MinuteController::class, 'index'])->name('minutes.index');
@@ -210,6 +216,7 @@ Route::middleware(['auth', 'verified', 'throttle:app'])->group(function () {
         Route::post('/minutes/{minute}/finalize', [MinuteController::class, 'finalize'])->middleware('throttle:writes')->name('minutes.finalize');
         Route::post('/minutes/{minute}/approve', [MinuteController::class, 'approve'])->middleware('throttle:writes')->name('minutes.approve');
         Route::post('/minutes/{minute}/actions/{minuteAction}/to-task', [MinuteController::class, 'actionToTask'])->middleware('throttle:writes')->name('minutes.actions.task');
+        Route::post('/minutes/{minute}/transfer', [TransferController::class, 'minute'])->middleware('throttle:writes')->name('minutes.transfer');
         Route::get('/minutes/{minute}/print', [MinuteController::class, 'print'])->middleware('throttle:30,1')->name('minutes.print');
 
         // Notes

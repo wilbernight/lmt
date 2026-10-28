@@ -237,6 +237,7 @@ class TaskController extends Controller
                 'work' => $user->can('work', $task),
                 'delete' => $user->can('delete', $task),
                 'comment' => $user->can('comment', $task),
+                'transfer' => $user->can('update', $task),
             ],
         ]);
     }

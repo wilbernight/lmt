@@ -146,7 +146,7 @@ class LetterController extends Controller
                 'created_at' => $r->created_at->toIso8601String(),
             ]),
             'archived' => $letter->sender_id === $user->id ? $letter->sender_archived_at !== null : $me?->pivot->archived_at !== null,
-            'can' => ['refer' => $user->can('refer', $letter), 'reply' => $user->can('reply', $letter)],
+            'can' => ['refer' => $user->can('refer', $letter), 'reply' => $user->can('reply', $letter), 'transfer' => $letter->sender_id === $user->id || $user->can('update', $workspace)],
         ]);
     }
 

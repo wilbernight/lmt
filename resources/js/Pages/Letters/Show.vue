@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { Archive, ArchiveRestore, ArrowRight, CheckCheck, Lock, Printer, Reply, ReplyAll, Share2 } from '@lucide/vue';
+import { Archive, ArchiveRestore, ArrowRight, CheckCheck, FolderOutput, Lock, Printer, Reply, ReplyAll, Share2 } from '@lucide/vue';
 import Button from '@/Components/ui/Button.vue';
 import Avatar from '@/Components/ui/Avatar.vue';
 import Modal from '@/Components/ui/Modal.vue';
@@ -9,6 +9,7 @@ import Field from '@/Components/ui/Field.vue';
 import MemberPicker from '@/Components/ui/MemberPicker.vue';
 import FileUpload from '@/Components/ui/FileUpload.vue';
 import AttachmentList from '@/Components/ui/AttachmentList.vue';
+import TransferDialog from '@/Components/ui/TransferDialog.vue';
 import { faNum, jDateTime } from '@/lib/format';
 
 const props = defineProps({ letter: Object, thread: Array, referrals: Array, archived: Boolean, can: Object });
@@ -25,6 +26,9 @@ const sendReply = () => replyForm.post(route('letters.reply', [ws.id, last.id]),
 const referring = ref(false);
 const referForm = useForm({ to: [], note: '' });
 const sendRefer = () => referForm.post(route('letters.refer', [ws.id, props.letter.id]), { preserveScroll: true, onSuccess: () => { referring.value = false; referForm.reset(); } });
+
+const transferring = ref(false);
+const onTransferred = (data) => router.visit(data.url);
 
 const archive = () => router.post(route('letters.archive', [ws.id, props.letter.id]), {}, { preserveScroll: true });
 // Opens the letterhead print view in a new tab and starts printing there.
@@ -43,6 +47,7 @@ const typeLabel = { to: 'گیرنده', cc: 'رونوشت', referral: 'ارجا�
             <h1 class="min-w-0 flex-1 truncate text-xl font-black">{{ letter.subject }}</h1>
             <Button variant="secondary" @click="printLetter(letter.id)"><Printer class="size-4" /> چاپ با سربرگ</Button>
             <Button variant="secondary" @click="archive"><component :is="archived ? ArchiveRestore : Archive" class="size-4" /> {{ archived ? 'خروج از بایگانی' : 'بایگانی' }}</Button>
+            <Button v-if="can.transfer" variant="secondary" @click="transferring = true"><FolderOutput class="size-4" /> انتقال</Button>
             <Button v-if="can.refer" variant="soft" @click="referring = true"><Share2 class="size-4" /> ارجاع / پاراف</Button>
             <Button v-if="can.reply" @click="replying = true"><Reply class="size-4" /> پاسخ</Button>
         </div>
@@ -113,4 +118,12 @@ const typeLabel = { to: 'گیرنده', cc: 'رونوشت', referral: 'ارجا�
             <Button :loading="referForm.processing" :disabled="!referForm.to.length" @click="sendRefer">ارجاع</Button>
         </template>
     </Modal>
+
+    <TransferDialog
+        :show="transferring"
+        title="انتقال نامه"
+        :endpoint="route('letters.transfer', [ws.id, letter.id])"
+        @close="transferring = false"
+        @done="onTransferred"
+    />
 </template>

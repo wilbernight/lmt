@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import {
-    AtSign, Bookmark, CalendarClock, CircleCheck, Clock, Copy, Eye, EyeOff, Flag, FolderKanban, History, Layers,
+    AtSign, Bookmark, CalendarClock, CircleCheck, Clock, Copy, Eye, EyeOff, Flag, FolderKanban, FolderOutput, History, Layers,
     ListChecks, MessageSquare, MoreHorizontal, Paperclip, Pencil, Plus, Send, Tag, Timer, Trash2, Users, X,
 } from '@lucide/vue';
 import Modal from '@/Components/ui/Modal.vue';
@@ -19,6 +19,7 @@ import FileUpload from '@/Components/ui/FileUpload.vue';
 import AttachmentList from '@/Components/ui/AttachmentList.vue';
 import ProgressBar from '@/Components/ui/ProgressBar.vue';
 import Spinner from '@/Components/ui/Spinner.vue';
+import TransferDialog from '@/Components/ui/TransferDialog.vue';
 import TaskTimer from './TaskTimer.vue';
 import TaskTimeLog from './TaskTimeLog.vue';
 import http from '@/lib/http';
@@ -42,6 +43,7 @@ const sending = ref(false);
 const uploader = ref(null);
 const reportUploader = ref(null);
 const options = ref({ categories: [], labels: [] });
+const transferring = ref(false);
 
 const can = computed(() => task.value?.can ?? {});
 const url = (name, extra = []) => route(name, [ws.value.id, task.value.id, ...extra]);
@@ -212,6 +214,11 @@ function copyLink(close) {
     navigator.clipboard?.writeText(link).then(() => toast.success('پیوند کپی شد.'));
 }
 
+function onTransferred(data) {
+    closeTask();
+    router.visit(data.url);
+}
+
 const activityText = (a) =>
     ({
         created: 'وظیفه را ساخت',
@@ -226,6 +233,7 @@ const activityText = (a) =>
         timer_started: 'شروع به کار کرد',
         timer_stopped: `کار را متوقف کرد (${a.data?.minutes ?? 0} دقیقه)`,
         time_logged: `${a.data?.minutes ?? 0} دقیقه زمان ثبت کرد`,
+        transferred: `وظیفه را به «${a.data?.project ?? a.data?.workspace ?? 'میزکار دیگر'}» منتقل کرد`,
     })[a.type] ?? a.type;
 </script>
 
@@ -255,6 +263,7 @@ const activityText = (a) =>
                                 <MenuItem @click="toggleWatch(); close()">
                                     <component :is="task.watching ? EyeOff : Eye" class="size-4" /> {{ task.watching ? 'لغو پیگیری' : 'پیگیری این وظیفه' }}
                                 </MenuItem>
+                                <MenuItem v-if="can.transfer" @click="transferring = true; close()"><FolderOutput class="size-4" /> انتقال…</MenuItem>
                                 <MenuItem @click="copyLink(close)"><Copy class="size-4" /> کپی پیوند</MenuItem>
                                 <MenuItem v-if="can.delete" danger @click="destroy(close)"><Trash2 class="size-4" /> حذف وظیفه</MenuItem>
                             </template>
@@ -508,4 +517,14 @@ const activityText = (a) =>
             </aside>
         </div>
     </Modal>
+
+    <TransferDialog
+        :show="transferring"
+        title="انتقال وظیفه"
+        with-projects
+        :endpoint="task ? url('tasks.transfer') : ''"
+        :exclude-project-id="task?.project?.id ?? null"
+        @close="transferring = false"
+        @done="onTransferred"
+    />
 </template>

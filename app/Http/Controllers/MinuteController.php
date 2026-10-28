@@ -95,6 +95,7 @@ class MinuteController extends Controller
                 'delete' => $user->can('delete', $minute),
                 'approve' => $user->can('approve', $minute),
                 'act' => $user->can('manageActions', $minute),
+                'transfer' => $user->can('manageActions', $minute),
             ],
         ]);
     }
